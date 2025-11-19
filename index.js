@@ -1524,7 +1524,7 @@ function displayNotifications() {
         // Different positioning based on game state
         let bottomMargin = 180; // Default margin for gameplay screen
         if (gameState === 'locationSelect') {
-            bottomMargin = 280; // Extra margin to avoid covering location cards on mobile
+            bottomMargin = 320; // Increased margin to avoid covering location cards on mobile
         } else if (gameState === 'strainSelect') {
             bottomMargin = 200; // Margin for strain selection
         } else if (gameState === 'shop' || gameState === 'hybridization' || gameState === 'strainList') {
@@ -1607,8 +1607,8 @@ function setup() {
         // Mobile compatibility attributes - critical for iOS and Android
         introVideo.elt.setAttribute('playsinline', 'true');
         introVideo.elt.setAttribute('webkit-playsinline', 'true');
+        introVideo.elt.setAttribute('x-webkit-airplay', 'allow');
         introVideo.elt.setAttribute('preload', 'auto');
-        introVideo.elt.setAttribute('crossorigin', 'anonymous');
 
         // IMPORTANT: Start muted for mobile compatibility
         // We'll try to unmute after user interaction
@@ -1619,31 +1619,34 @@ function setup() {
 
         // Set up video end callback
         introVideo.onended(() => {
-            console.log('Video ended');
+            console.log('✓ Video playback ended');
             videoEnded = true;
             videoPlaying = false;
         });
 
-        // Add load event listener for better tracking
+        // Add load event listener for better tracking - only set loaded when ready
         introVideo.elt.addEventListener('loadeddata', () => {
-            console.log('Video data loaded and ready');
+            console.log('✓ Video data loaded and ready');
+            videoLoaded = true;
+        });
+
+        // Also listen for canplaythrough for full readiness
+        introVideo.elt.addEventListener('canplaythrough', () => {
+            console.log('✓ Video can play through without buffering');
             videoLoaded = true;
         });
 
         // Add error handler
         introVideo.elt.addEventListener('error', (e) => {
-            console.log('Video error:', e);
+            console.log('✗ Video loading error:', e);
             videoLoaded = false;
-            gameState = 'titleScreen';
         });
 
-        videoLoaded = true;
-        console.log('Video loading initiated');
+        console.log('▶ Video loading initiated...');
     } catch (e) {
-        console.log('Video loading error:', e);
+        console.log('✗ Video creation error:', e);
         videoLoaded = false;
-        // If video fails, skip directly to title screen
-        gameState = 'titleScreen';
+        // Don't skip to title screen yet - let the touch to start screen handle it
     }
 }
 
@@ -2751,7 +2754,7 @@ function drawGrowingScreen() {
 
 function drawTopUI() {
     let isMobile = width < 768;
-    let headerHeight = isMobile ? 110 : 65; // Increased mobile header height
+    let headerHeight = isMobile ? 95 : 65; // Optimized mobile header height
 
     // Enhanced header with gradient background
     noStroke();
@@ -2775,62 +2778,62 @@ function drawTopUI() {
     noStroke();
 
     if (isMobile) {
-        // MOBILE LAYOUT - Improved spacing and text sizes
+        // MOBILE LAYOUT - Compact and efficient
         textAlign(LEFT, CENTER);
 
-        // Row 1: Money and Day - larger and more readable
+        // Row 1: Money and Day - compact layout
         fill(255, 215, 0);
-        textSize(16); // Increased from 14
+        textSize(14);
         textStyle(BOLD);
-        text(`💰 $${player.money}`, 8, 15);
+        text(`💰 $${player.money}`, 8, 13);
 
         fill(180, 255, 180);
-        textSize(13); // Increased from 11
+        textSize(11);
         textStyle(NORMAL);
-        text(`📅 Day ${floor(gameTime / 180)}`, 8, 35);
+        text(`📅 Day ${floor(gameTime / 180)}`, 8, 30);
 
-        // Row 2: Inventory display - larger text for better readability
+        // Row 2: Inventory display - compact and efficient
         textAlign(CENTER, CENTER);
-        textSize(11); // Increased from 9
+        textSize(9);
         textStyle(BOLD);
 
         let itemW = width / 6;
-        let row2Y = 65; // Moved down to accommodate larger top row
-        let boxHeight = 32; // Increased box height
+        let row2Y = 58; // Optimized position
+        let boxHeight = 28; // Compact height
 
         // Water
         fill(41, 128, 185, 40);
-        rect(0, row2Y - 12, itemW, boxHeight, 0);
+        rect(0, row2Y - 10, itemW, boxHeight, 0);
         fill(100, 200, 255);
         text(`💧\n${floor(player.inventory.water)}`, itemW * 0.5, row2Y + 4);
 
         // Nitrogen
         fill(46, 125, 50, 40);
-        rect(itemW, row2Y - 12, itemW, boxHeight, 0);
+        rect(itemW, row2Y - 10, itemW, boxHeight, 0);
         fill(120, 255, 120);
         text(`🌱\n${floor(player.inventory.nutrients.nitrogen)}`, itemW * 1.5, row2Y + 4);
 
         // Phosphorus
         fill(142, 68, 173, 40);
-        rect(itemW * 2, row2Y - 12, itemW, boxHeight, 0);
+        rect(itemW * 2, row2Y - 10, itemW, boxHeight, 0);
         fill(220, 130, 255);
         text(`🌸\n${floor(player.inventory.nutrients.phosphorus)}`, itemW * 2.5, row2Y + 4);
 
         // Potassium
         fill(230, 126, 34, 40);
-        rect(itemW * 3, row2Y - 12, itemW, boxHeight, 0);
+        rect(itemW * 3, row2Y - 10, itemW, boxHeight, 0);
         fill(255, 200, 120);
         text(`🍌\n${floor(player.inventory.nutrients.potassium)}`, itemW * 3.5, row2Y + 4);
 
         // Pesticide
         fill(211, 84, 0, 40);
-        rect(itemW * 4, row2Y - 12, itemW, boxHeight, 0);
+        rect(itemW * 4, row2Y - 10, itemW, boxHeight, 0);
         fill(255, 140, 140);
         text(`🔫\n${player.inventory.pesticide}`, itemW * 4.5, row2Y + 4);
 
         // Light power
         fill(241, 196, 15, 40);
-        rect(itemW * 5, row2Y - 12, itemW, boxHeight, 0);
+        rect(itemW * 5, row2Y - 10, itemW, boxHeight, 0);
         fill(255, 255, 180);
         text(`💡\n${player.inventory.lights.power}%`, itemW * 5.5, row2Y + 4);
 
@@ -2923,7 +2926,7 @@ function setupGrowingButtons() {
     let pauseBtnSize = isMobile ? 42 : 45;
     // Mobile: top-right below the header to avoid status bar overlap
     // Desktop: top-right corner as usual
-    let pauseBtnTop = isMobile ? 115 : 5;
+    let pauseBtnTop = isMobile ? 100 : 5;
     let pauseBtnLeft = width - pauseBtnSize - (isMobile ? 5 : 8);
     let pauseBtn = new Button(pauseBtnLeft, pauseBtnTop, pauseBtnSize, pauseBtnSize, '⏸', () => {
         playButtonSFX();
@@ -3478,7 +3481,10 @@ function drawShop() {
     let cardSpacing = isMobile ? 8 : 20;
     let cols = isMobile ? 2 : floor(width / (cardW + 20));
     let startX = (width - cols * (cardW + cardSpacing)) / 2 + cardSpacing / 2;
-    let startY = isMobile ? 75 : 110;
+    // Better vertical centering for mobile shop items
+    let rows = Math.ceil(items.length / cols);
+    let totalContentHeight = rows * cardH + (rows - 1) * (isMobile ? 10 : 15);
+    let startY = isMobile ? max(75, (height - totalContentHeight) / 2 - 20) : 110;
 
     for (let i = 0; i < items.length; i++) {
         let item = items[i];
@@ -3736,20 +3742,14 @@ function drawSettingsMenu() {
     strokeWeight(3);
     rect(panelX, panelY, panelW, panelH, 15);
 
-    // Title with black outline instead of neon green
+    // Title - matching style with other menus (no outline)
     textFont('Bangers');
     textAlign(CENTER);
     textSize(36);
     textStyle(NORMAL);
-
-    // Black outline for title
-    stroke(0, 0, 0);
-    strokeWeight(6);
+    noStroke(); // No outline to match other menu titles
     fill(220, 255, 220);
     text('⚙️ SETTINGS', width / 2, panelY + 50);
-
-    // Remove stroke for rest of text
-    noStroke();
 
     // Settings content
     textFont('Carter One');
@@ -4329,49 +4329,56 @@ function mousePressed() {
             introVideo.time(0);
 
             // Try to play with audio first (desktop), fallback to muted (mobile)
+            // Add small delay to ensure state transition is complete
             const tryPlayWithAudio = () => {
-                introVideo.elt.muted = false;
-                introVideo.volume(audioSettings.musicVolume);
+                setTimeout(() => {
+                    introVideo.elt.muted = false;
+                    introVideo.volume(audioSettings.musicVolume);
 
-                let playPromise = introVideo.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        console.log('Video started playing with audio');
+                    let playPromise = introVideo.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            console.log('✓ Video started playing with audio');
+                            videoPlaying = true;
+                        }).catch((error) => {
+                            console.log('⚠ Video playback with audio failed, trying muted:', error);
+                            // Fallback to muted playback for mobile devices
+                            tryPlayMuted();
+                        });
+                    } else {
+                        console.log('Play promise undefined, assuming video is playing');
                         videoPlaying = true;
-                    }).catch((error) => {
-                        console.log('Video playback with audio failed, trying muted:', error);
-                        // Fallback to muted playback for mobile devices
-                        tryPlayMuted();
-                    });
-                } else {
-                    console.log('Play promise undefined, assuming video is playing');
-                    videoPlaying = true;
-                }
+                    }
+                }, 100); // Small delay for mobile compatibility
             };
 
             const tryPlayMuted = () => {
-                introVideo.stop();
-                introVideo.time(0);
-                introVideo.elt.muted = true;
-                introVideo.volume(0);
+                setTimeout(() => {
+                    introVideo.stop();
+                    introVideo.time(0);
+                    introVideo.elt.muted = true;
+                    introVideo.volume(0);
 
-                let mutedPromise = introVideo.play();
-                if (mutedPromise !== undefined) {
-                    mutedPromise.then(() => {
-                        console.log('Video started playing muted');
+                    let mutedPromise = introVideo.play();
+                    if (mutedPromise !== undefined) {
+                        mutedPromise.then(() => {
+                            console.log('✓ Video started playing muted (mobile mode)');
+                            videoPlaying = true;
+                        }).catch((err) => {
+                            console.log('✗ Video playback failed completely:', err);
+                            // Skip to title screen if video can't play at all
+                            gameState = 'titleScreen';
+                            videoPlaying = false;
+                            fadeAlpha = 255;
+                        });
+                    } else {
                         videoPlaying = true;
-                    }).catch((err) => {
-                        console.log('Video playback failed completely:', err);
-                        gameState = 'titleScreen';
-                        videoPlaying = false;
-                        fadeAlpha = 255;
-                    });
-                } else {
-                    videoPlaying = true;
-                }
+                    }
+                }, 100); // Small delay for mobile compatibility
             };
 
             // Start with audio attempt
+            console.log('▶ Attempting to play intro video...');
             tryPlayWithAudio();
         } else {
             // Skip to title screen if video failed to load
