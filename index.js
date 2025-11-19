@@ -1,5 +1,5 @@
 // === GAME STATE ===
-let gameState = 'titleScreen'; // titleScreen, strainSelect, locationSelect, growing, shop, harvest, hybridization, paused, settings
+let gameState = 'touchToStart'; // touchToStart, openingCredits, titleScreen, strainSelect, locationSelect, growing, shop, harvest, hybridization, paused, settings
 let player = {
     money: 500,
     inventory: {
@@ -20,6 +20,7 @@ let dayNightCycle = 0;
 let timeSpeed = 0.3; // Slow down time significantly
 let gamePaused = false;
 let previousGameState = null;
+let savedGameplayState = null; // Stores the actual gameplay state when entering pause/settings
 
 // === AUDIO SYSTEM ===
 let menuMusic, gameplayMusic, buttonSFX, notificationSFX;
@@ -30,6 +31,13 @@ let audioSettings = {
     sfxEnabled: true
 };
 let audioLoaded = false;
+
+// === INTRO VIDEO SYSTEM ===
+let introVideo;
+let videoLoaded = false;
+let videoPlaying = false;
+let videoEnded = false;
+let fadeAlpha = 255; // For fade transition
 
 // === WEATHER SYSTEM ===
 let weather = {
@@ -708,6 +716,8 @@ function preload() {
         console.log('Audio loading error:', e);
         audioLoaded = false;
     }
+
+    // Note: Video is loaded in setup() to avoid autoplay restrictions
 }
 
 function playButtonSFX() {
@@ -971,6 +981,32 @@ function setup() {
     let canvas = createCanvas(min(800, windowWidth), min(600, windowHeight));
     canvas.parent('game-container');
     textFont('Arial');
+
+    // Load video (not playing yet - waiting for user interaction)
+    try {
+        introVideo = createVideo('inspiresoftwareintro.mp4');
+        introVideo.hide(); // Hide the video element, we'll draw it on canvas
+        introVideo.volume(audioSettings.musicVolume);
+
+        // iOS-specific attributes for better compatibility
+        introVideo.elt.setAttribute('playsinline', '');
+        introVideo.elt.setAttribute('webkit-playsinline', '');
+
+        // Set up video end callback
+        introVideo.onended(() => {
+            console.log('Video ended');
+            videoEnded = true;
+            videoPlaying = false;
+        });
+
+        videoLoaded = true;
+        console.log('Video loaded successfully');
+    } catch (e) {
+        console.log('Video loading error:', e);
+        videoLoaded = false;
+        // If video fails, skip directly to title screen
+        gameState = 'titleScreen';
+    }
 }
 
 function draw() {
@@ -988,7 +1024,11 @@ function draw() {
     }
 
     // Route to different screens
-    if (gameState === 'titleScreen') {
+    if (gameState === 'touchToStart') {
+        drawTouchToStart();
+    } else if (gameState === 'openingCredits') {
+        drawOpeningCredits();
+    } else if (gameState === 'titleScreen') {
         drawTitleScreen();
     } else if (gameState === 'strainSelect') {
         drawStrainSelect();
@@ -1015,6 +1055,102 @@ function draw() {
         btn.checkHover(mouseX, mouseY);
         btn.display();
     }
+}
+
+// === TOUCH TO START SCREEN ===
+function drawTouchToStart() {
+    background(0);
+
+    // Animated "TOUCH SCREEN TO START GAME" text
+    push();
+    textFont('Bangers');
+    textAlign(CENTER, CENTER);
+
+    // Pulsing effect
+    let pulseSize = 40 + sin(frameCount * 0.05) * 5;
+    let pulseAlpha = 200 + sin(frameCount * 0.05) * 55;
+
+    fill(100, 255, 100, pulseAlpha);
+    textSize(pulseSize);
+    text('TOUCH SCREEN', width / 2, height / 2 - 30);
+    text('TO START GAME', width / 2, height / 2 + 30);
+
+    // Subtitle
+    textFont('Carter One');
+    textSize(16);
+    fill(180, 255, 180, pulseAlpha * 0.7);
+    text('🌿 CANNA-CULTIVATOR 🌿', width / 2, height / 2 + 80);
+    pop();
+
+    // Clear buttons array for this screen
+    buttons = [];
+}
+
+// === OPENING CREDITS ===
+function drawOpeningCredits() {
+    background(0);
+
+    // Check if video ended
+    if (videoEnded) {
+        // Fade to black then transition
+        if (fadeAlpha < 255) {
+            fadeAlpha += 5;
+
+            // Draw black overlay with increasing alpha
+            fill(0, 0, 0, fadeAlpha);
+            rect(0, 0, width, height);
+        } else {
+            // Transition to title screen
+            gameState = 'titleScreen';
+            fadeAlpha = 255;
+            if (introVideo) {
+                introVideo.stop();
+            }
+            return;
+        }
+    } else if (videoPlaying && introVideo) {
+        // Draw video on canvas
+        push();
+
+        // Calculate video dimensions to fit screen while maintaining aspect ratio
+        let videoAspect = introVideo.width / introVideo.height;
+        let screenAspect = width / height;
+
+        let drawWidth, drawHeight, drawX, drawY;
+
+        if (videoAspect > screenAspect) {
+            // Video is wider than screen
+            drawWidth = width;
+            drawHeight = width / videoAspect;
+            drawX = 0;
+            drawY = (height - drawHeight) / 2;
+        } else {
+            // Video is taller than screen
+            drawHeight = height;
+            drawWidth = height * videoAspect;
+            drawX = (width - drawWidth) / 2;
+            drawY = 0;
+        }
+
+        // Draw the video
+        image(introVideo, drawX, drawY, drawWidth, drawHeight);
+        pop();
+
+        // Add "TAP TO SKIP" indicator
+        push();
+        textFont('Carter One');
+        textAlign(CENTER);
+        textSize(14);
+
+        // Pulsing effect
+        let pulseAlpha = 150 + sin(frameCount * 0.1) * 105;
+        fill(255, 255, 255, pulseAlpha);
+        text('TAP TO SKIP', width / 2, height - 20);
+        pop();
+    }
+
+    // Clear buttons array for this screen
+    buttons = [];
 }
 
 // === TITLE SCREEN ===
@@ -1932,6 +2068,7 @@ function setupGrowingButtons() {
     let pauseBtnSize = 45;
     let pauseBtn = new Button(width - pauseBtnSize - 10, 10, pauseBtnSize, pauseBtnSize, '⏸', () => {
         playButtonSFX();
+        savedGameplayState = 'growing'; // Save the actual gameplay state
         previousGameState = 'growing';
         gameState = 'paused';
         gamePaused = true;
@@ -2437,7 +2574,8 @@ function drawPauseMenu() {
     // Resume button
     buttons.push(new Button(btnX, btnY, btnW, btnH, '▶️ RESUME', () => {
         playButtonSFX();
-        gameState = previousGameState;
+        // Use savedGameplayState to return to actual gameplay
+        gameState = savedGameplayState || previousGameState || 'growing';
         gamePaused = false;
     }, [76, 175, 80]));
 
@@ -2601,6 +2739,8 @@ function drawSettingsMenu() {
         playButtonSFX();
         if (previousGameState === 'paused') {
             gameState = 'paused';
+        } else if (previousGameState === 'titleScreen') {
+            gameState = 'titleScreen';
         } else {
             gameState = previousGameState || 'titleScreen';
         }
@@ -2609,6 +2749,47 @@ function drawSettingsMenu() {
 
 // === MOUSE/TOUCH HANDLING ===
 function mousePressed() {
+    // Handle touch to start screen
+    if (gameState === 'touchToStart') {
+        if (videoLoaded) {
+            // Start playing the intro video
+            gameState = 'openingCredits';
+            videoPlaying = true;
+            videoEnded = false;
+            fadeAlpha = 0;
+            if (introVideo) {
+                // Use promise-based play for better error handling
+                let playPromise = introVideo.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('Video started playing');
+                    }).catch((error) => {
+                        console.log('Video autoplay prevented:', error);
+                        // If autoplay fails, go directly to title screen
+                        gameState = 'titleScreen';
+                        videoPlaying = false;
+                    });
+                }
+            }
+        } else {
+            // Skip to title screen if video failed to load
+            gameState = 'titleScreen';
+        }
+        return;
+    }
+
+    // Allow skipping the opening credits by tapping
+    if (gameState === 'openingCredits') {
+        if (videoPlaying && introVideo) {
+            introVideo.stop();
+        }
+        gameState = 'titleScreen';
+        videoPlaying = false;
+        videoEnded = false;
+        fadeAlpha = 255;
+        return;
+    }
+
     // Handle button clicks
     for (let btn of buttons) {
         if (btn.isClicked(mouseX, mouseY)) {
