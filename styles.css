@@ -217,8 +217,12 @@ body, button, div {
     transition: opacity 1s ease-out;
 }
 
+#videoIntro.show {
+    display: flex !important;
+}
+
 #videoIntro.hidden {
-    display: none;
+    display: none !important;
 }
 
 #videoIntro.fade-out {
@@ -226,9 +230,13 @@ body, button, div {
 }
 
 #videoIntro video {
+    display: block;
     width: 100%;
     height: 100%;
+    max-width: 100vw;
+    max-height: 100vh;
     object-fit: contain;
+    background: #000000;
 }
 
 /* Mobile responsive adjustments for tap screen */
