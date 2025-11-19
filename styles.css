@@ -82,6 +82,22 @@ body, button, div {
     }
 }
 
+@media (max-width: 768px) {
+    /* Mobile-specific improvements */
+    body {
+        font-size: 14px;
+        /* Prevent zoom on input focus */
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    canvas {
+        /* Ensure canvas doesn't overflow on mobile */
+        max-width: 100vw;
+        max-height: 100vh;
+    }
+}
+
 @media (orientation: landscape) and (max-height: 500px) {
     body {
         font-size: 12px;

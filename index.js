@@ -1262,7 +1262,7 @@ class Button {
         fill(255);
         noStroke();
         textAlign(CENTER, CENTER);
-        textSize(min(this.h * 0.45, 16));
+        textSize(min(this.h * 0.4, 18)); // Slightly better scaling and larger max
         text(this.label, this.x + this.w / 2, this.y + this.h / 2);
 
         pop();
@@ -1512,16 +1512,17 @@ function addNotification(message, type = 'info') {
 function displayNotifications() {
     let isMobile = width < 768;
     let notifWidth = isMobile ? min(width - 20, 280) : min(320, width * 0.4);
-    let notifHeight = isMobile ? 34 : 38;
-    let fontSize = isMobile ? 11 : 12;
+    let notifHeight = isMobile ? 38 : 38; // Slightly larger on mobile
+    let fontSize = isMobile ? 12 : 12; // More readable size
     let xOffset, yOffset;
 
     // On mobile, position at bottom to avoid overlap with UI elements
     // On desktop, position at top left as before
     if (isMobile) {
         xOffset = (width - notifWidth) / 2; // Center horizontally on mobile
-        // Start from bottom, work upwards
-        yOffset = height - 50; // Start from bottom with margin
+        // Start from above control panel, work upwards
+        let panelHeight = 150;
+        yOffset = height - panelHeight - 15; // Start above control panel with margin
     } else {
         xOffset = 10; // Left margin on desktop
         yOffset = 75; // Start below the top UI bar on desktop
@@ -1595,14 +1596,15 @@ function setup() {
         introVideo.hide(); // Hide the video element, we'll draw it on canvas
 
         // Mobile compatibility attributes - critical for iOS and Android
-        introVideo.elt.setAttribute('playsinline', 'true');
-        introVideo.elt.setAttribute('webkit-playsinline', 'true');
+        introVideo.elt.setAttribute('playsinline', '');
+        introVideo.elt.setAttribute('webkit-playsinline', '');
         introVideo.elt.setAttribute('preload', 'auto');
 
-        // Don't mute - we have touchToStart screen for user interaction
-        // This allows audio to play after user taps
+        // IMPORTANT: Start muted for mobile compatibility
+        // We'll try to unmute after user interaction
+        introVideo.elt.muted = true;
+        introVideo.elt.setAttribute('muted', '');
         introVideo.elt.removeAttribute('autoplay');
-        introVideo.elt.setAttribute('muted', 'false');
 
         // Set up video end callback
         introVideo.onended(() => {
@@ -1681,7 +1683,8 @@ function drawTouchToStart() {
     textAlign(CENTER, CENTER);
 
     // Pulsing effect
-    let pulseSize = 40 + sin(frameCount * 0.05) * 5;
+    let isMobile = width < 768;
+    let pulseSize = (isMobile ? 36 : 40) + sin(frameCount * 0.05) * 5;
     let pulseAlpha = 200 + sin(frameCount * 0.05) * 55;
 
     fill(100, 255, 100, pulseAlpha);
@@ -1691,7 +1694,7 @@ function drawTouchToStart() {
 
     // Subtitle
     textFont('Carter One');
-    textSize(16);
+    textSize(isMobile ? 14 : 16);
     fill(180, 255, 180, pulseAlpha * 0.7);
     text('🌿 CANNA-CULTIVATOR 🌿', width / 2, height / 2 + 80);
     pop();
@@ -2590,7 +2593,7 @@ function drawGrowingScreen() {
 
 function drawTopUI() {
     let isMobile = width < 768;
-    let headerHeight = isMobile ? 90 : 65;
+    let headerHeight = isMobile ? 110 : 65; // Increased mobile header height
 
     // Enhanced header with gradient background
     noStroke();
@@ -2614,63 +2617,64 @@ function drawTopUI() {
     noStroke();
 
     if (isMobile) {
-        // MOBILE LAYOUT - Compact 2-row layout with optimized spacing
+        // MOBILE LAYOUT - Improved spacing and text sizes
         textAlign(LEFT, CENTER);
 
-        // Row 1: Money and Day - more compact
+        // Row 1: Money and Day - larger and more readable
         fill(255, 215, 0);
-        textSize(14);
+        textSize(16); // Increased from 14
         textStyle(BOLD);
-        text(`💰 $${player.money}`, 6, 13);
+        text(`💰 $${player.money}`, 8, 15);
 
         fill(180, 255, 180);
-        textSize(11);
+        textSize(13); // Increased from 11
         textStyle(NORMAL);
-        text(`📅 Day ${floor(gameTime / 180)}`, 6, 30);
+        text(`📅 Day ${floor(gameTime / 180)}`, 8, 35);
 
-        // Row 2: Compact inventory display - smaller text and icons
+        // Row 2: Inventory display - larger text for better readability
         textAlign(CENTER, CENTER);
-        textSize(9);
+        textSize(11); // Increased from 9
         textStyle(BOLD);
 
         let itemW = width / 6;
-        let row2Y = 52;
+        let row2Y = 65; // Moved down to accommodate larger top row
+        let boxHeight = 32; // Increased box height
 
         // Water
         fill(41, 128, 185, 40);
-        rect(0, row2Y - 10, itemW, 20, 0);
+        rect(0, row2Y - 12, itemW, boxHeight, 0);
         fill(100, 200, 255);
-        text(`💧\n${floor(player.inventory.water)}`, itemW * 0.5, row2Y);
+        text(`💧\n${floor(player.inventory.water)}`, itemW * 0.5, row2Y + 4);
 
         // Nitrogen
         fill(46, 125, 50, 40);
-        rect(itemW, row2Y - 10, itemW, 20, 0);
+        rect(itemW, row2Y - 12, itemW, boxHeight, 0);
         fill(120, 255, 120);
-        text(`🌱\n${floor(player.inventory.nutrients.nitrogen)}`, itemW * 1.5, row2Y);
+        text(`🌱\n${floor(player.inventory.nutrients.nitrogen)}`, itemW * 1.5, row2Y + 4);
 
         // Phosphorus
         fill(142, 68, 173, 40);
-        rect(itemW * 2, row2Y - 10, itemW, 20, 0);
+        rect(itemW * 2, row2Y - 12, itemW, boxHeight, 0);
         fill(220, 130, 255);
-        text(`🌸\n${floor(player.inventory.nutrients.phosphorus)}`, itemW * 2.5, row2Y);
+        text(`🌸\n${floor(player.inventory.nutrients.phosphorus)}`, itemW * 2.5, row2Y + 4);
 
         // Potassium
         fill(230, 126, 34, 40);
-        rect(itemW * 3, row2Y - 10, itemW, 20, 0);
+        rect(itemW * 3, row2Y - 12, itemW, boxHeight, 0);
         fill(255, 200, 120);
-        text(`🍌\n${floor(player.inventory.nutrients.potassium)}`, itemW * 3.5, row2Y);
+        text(`🍌\n${floor(player.inventory.nutrients.potassium)}`, itemW * 3.5, row2Y + 4);
 
         // Pesticide
         fill(211, 84, 0, 40);
-        rect(itemW * 4, row2Y - 10, itemW, 20, 0);
+        rect(itemW * 4, row2Y - 12, itemW, boxHeight, 0);
         fill(255, 140, 140);
-        text(`🔫\n${player.inventory.pesticide}`, itemW * 4.5, row2Y);
+        text(`🔫\n${player.inventory.pesticide}`, itemW * 4.5, row2Y + 4);
 
         // Light power
         fill(241, 196, 15, 40);
-        rect(itemW * 5, row2Y - 10, itemW, 20, 0);
+        rect(itemW * 5, row2Y - 12, itemW, boxHeight, 0);
         fill(255, 255, 180);
-        text(`💡\n${player.inventory.lights.power}%`, itemW * 5.5, row2Y);
+        text(`💡\n${player.inventory.lights.power}%`, itemW * 5.5, row2Y + 4);
 
     } else {
         // DESKTOP LAYOUT - Original design
@@ -2734,14 +2738,15 @@ function drawTopUI() {
 }
 
 function drawControlPanel() {
-    let panelHeight = 130;
+    let isMobile = width < 768;
+    let panelHeight = isMobile ? 150 : 130; // Taller panel on mobile
     let panelY = height - panelHeight;
 
     // Panel background with gradient
     noStroke();
     fill(15, 25, 15, 250);
     rect(0, panelY, width, panelHeight);
-    
+
     // Top border with glow
     stroke(76, 175, 80, 200);
     strokeWeight(3);
@@ -2756,8 +2761,8 @@ function setupGrowingButtons() {
 
     let isMobile = width < 768;
 
-    // Pause button in top right corner - larger on mobile for easier touch
-    let pauseBtnSize = isMobile ? 45 : 45;
+    // Pause button in top right corner - larger and better positioned on mobile
+    let pauseBtnSize = isMobile ? 50 : 45;
     let pauseBtn = new Button(width - pauseBtnSize - 5, 5, pauseBtnSize, pauseBtnSize, '⏸', () => {
         playButtonSFX();
         savedGameplayState = 'growing'; // Save the actual gameplay state
@@ -2767,18 +2772,18 @@ function setupGrowingButtons() {
     }, [150, 100, 200]);
     buttons.push(pauseBtn);
 
-    // Mobile: larger buttons for better touch targets with optimized spacing
+    // Mobile: larger buttons for better touch targets with better spacing
     // Desktop: original compact layout
-    let btnY = height - 105;
-    let btnHeight = isMobile ? 42 : 38;
-    let btnSpacing = isMobile ? 4 : 8;
+    let btnY = isMobile ? height - 125 : height - 105; // Adjusted for taller panel
+    let btnHeight = isMobile ? 48 : 38; // Larger touch targets
+    let btnSpacing = isMobile ? 6 : 8; // Better spacing
     let totalBtns = 6;
     let availableWidth = isMobile ? width - (btnSpacing * 2) : width;
     let btnWidth = (availableWidth - btnSpacing * (totalBtns - 1)) / totalBtns;
     // Ensure buttons don't get too narrow on small screens
-    if (isMobile && btnWidth < 50) {
-        btnWidth = 50;
-        btnSpacing = max(2, (width - btnWidth * totalBtns) / (totalBtns + 1));
+    if (isMobile && btnWidth < 52) {
+        btnWidth = 52;
+        btnSpacing = max(3, (width - btnWidth * totalBtns) / (totalBtns + 1));
     }
 
     let x = btnSpacing;
@@ -2887,10 +2892,10 @@ function setupGrowingButtons() {
     }, [241, 196, 15])); // Golden yellow
 
     // Bottom row - Harvest and Plant buttons with better mobile spacing
-    btnY = height - 58;
+    btnY = isMobile ? height - 65 : height - 58; // Adjusted for taller panel
     x = btnSpacing;
     let bottomBtnWidth = isMobile ? (width - btnSpacing * 3) / 2 : (width - btnSpacing * 3) / 2;
-    let bottomBtnHeight = isMobile ? 40 : btnHeight;
+    let bottomBtnHeight = isMobile ? 48 : btnHeight; // Larger on mobile
 
     let harvestBtn = new Button(x, btnY, bottomBtnWidth, bottomBtnHeight, '✂️ HARVEST', () => {
         playButtonSFX();
@@ -2928,10 +2933,12 @@ function setupGrowingButtons() {
 }
 
 function drawPlantDetails(plant) {
+    let isMobile = width < 768;
     let panelW = min(330, width * 0.85);
     let panelH = 220;
     let panelX = width - panelW - 15; // Position on right side
-    let panelY = 80; // Below top UI
+    let headerHeight = isMobile ? 110 : 65;
+    let panelY = headerHeight + 15; // Below top UI with margin
 
     // Panel shadow
     fill(0, 0, 0, 100);
@@ -4118,38 +4125,36 @@ function mousePressed() {
             videoEnded = false;
             fadeAlpha = 0;
 
-            // Set volume for audio playback (user interaction allows unmuted playback)
-            introVideo.volume(audioSettings.musicVolume);
-            introVideo.elt.muted = false;
+            // First, try to play the video muted (guaranteed to work on mobile)
+            introVideo.elt.muted = true;
+            introVideo.volume(0);
 
             // Use promise-based play for better error handling
             let playPromise = introVideo.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    console.log('Video started playing successfully with audio');
+                    console.log('Video started playing (muted)');
                     videoPlaying = true;
+
+                    // Now try to unmute after it starts playing (may or may not work depending on browser)
+                    setTimeout(() => {
+                        try {
+                            introVideo.elt.muted = false;
+                            introVideo.volume(audioSettings.musicVolume);
+                            console.log('Video unmuted successfully');
+                        } catch (err) {
+                            console.log('Could not unmute video, continuing muted:', err);
+                        }
+                    }, 100);
                 }).catch((error) => {
-                    console.log('Video playback with audio prevented, trying muted fallback:', error);
-                    // Try to play muted as fallback if audio is blocked
-                    introVideo.volume(0);
-                    introVideo.elt.muted = true;
-                    let mutedPlayPromise = introVideo.play();
-                    if (mutedPlayPromise !== undefined) {
-                        mutedPlayPromise.then(() => {
-                            console.log('Video playing muted (audio was blocked)');
-                            videoPlaying = true;
-                        }).catch((err) => {
-                            console.log('Video playback completely blocked:', err);
-                            // If even muted playback fails, skip to title screen
-                            gameState = 'titleScreen';
-                            videoPlaying = false;
-                        });
-                    } else {
-                        // If play doesn't return a promise, skip to title screen
-                        gameState = 'titleScreen';
-                        videoPlaying = false;
-                    }
+                    console.log('Video playback failed even when muted:', error);
+                    // If even muted playback fails, skip to title screen
+                    gameState = 'titleScreen';
+                    videoPlaying = false;
                 });
+            } else {
+                console.log('Play promise undefined, video may be playing anyway');
+                videoPlaying = true;
             }
         } else {
             // Skip to title screen if video failed to load
