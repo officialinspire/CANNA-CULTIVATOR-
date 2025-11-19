@@ -1912,8 +1912,8 @@ function drawStrainSelect() {
 
     // Strain cards - responsive layout for mobile and desktop
     let cardWidth = isMobile ? min(width * 0.85, 240) : 240; // Scale down for mobile
-    let cardHeight = isMobile ? min(cardWidth * 1.125, 270) : 270; // Maintain aspect ratio on mobile
-    let spacing = isMobile ? 10 : 20;
+    let cardHeight = isMobile ? min(height * 0.28, 240) : 270; // Reduce height for mobile to fit viewport
+    let spacing = isMobile ? 8 : 20;
 
     // Adjust layout for mobile portrait mode
     let cols = (isMobile && width < 600) ? 1 : 3; // Stack vertically on narrow mobile screens
@@ -1922,7 +1922,10 @@ function drawStrainSelect() {
     let totalWidth = cols * cardWidth + (cols - 1) * spacing;
     let startX = (width - totalWidth) / 2; // Center the whole group horizontally
     let titleHeight = 70; // Space for title
-    let startY = (height - (rows * cardHeight + (rows - 1) * spacing)) / 2 + titleHeight / 2; // Center vertically considering title
+    // Adjust startY for mobile to ensure cards fit on screen
+    let availableHeight = height - titleHeight - (isMobile ? 20 : 40); // Leave padding at bottom
+    let contentHeight = rows * cardHeight + (rows - 1) * spacing;
+    let startY = isMobile ? min((height - contentHeight) / 2 + titleHeight / 2, titleHeight + 10) : (height - (rows * cardHeight + (rows - 1) * spacing)) / 2 + titleHeight / 2; // Center vertically considering title
 
     buttons = [];
 
@@ -1986,7 +1989,8 @@ function drawStrainSelect() {
 
         // Mini plant preview
         push();
-        translate(x + cardWidth / 2, y + 215);
+        let plantPreviewY = isMobile ? (y + cardHeight - 75) : (y + 215); // Adjust for mobile
+        translate(x + cardWidth / 2, plantPreviewY);
         
         // Pot
         fill(139, 90, 43);
@@ -2021,13 +2025,15 @@ function drawStrainSelect() {
         }
         pop();
 
-        // Select button
+        // Select button - adjust height for mobile
+        let btnHeight = isMobile ? 32 : 35;
+        let btnYOffset = isMobile ? 38 : 45;
         buttons.push(new Button(
-            x + 15, 
-            y + cardHeight - 45, 
-            cardWidth - 30, 
-            35, 
-            'SELECT', 
+            x + 15,
+            y + cardHeight - btnYOffset,
+            cardWidth - 30,
+            btnHeight,
+            'SELECT',
             () => selectStrain(strain),
             [data.color[0] * 0.6, data.color[1] * 0.6, data.color[2] * 0.6]
         ));
@@ -2068,8 +2074,8 @@ function drawLocationSelect() {
 
     // Cards with responsive sizing for mobile and desktop
     let cardWidth = isMobile ? min(width * 0.85, 340) : 340;
-    let cardHeight = isMobile ? min(height * 0.45, 280) : 330; // Reduced height for mobile
-    let spacing = isMobile ? 15 : 30;
+    let cardHeight = isMobile ? min(height * 0.38, 260) : 330; // Reduced height for mobile to fit better
+    let spacing = isMobile ? 12 : 30;
 
     // Stack vertically on narrow mobile screens
     let stackVertical = isMobile && width < 600;
@@ -2078,7 +2084,8 @@ function drawLocationSelect() {
 
     let startX = (width - totalWidth) / 2;
     let titleHeight = 60; // Space for title
-    let cardY = stackVertical ? max(titleHeight + 10, (height - totalHeight) / 2) : (height - cardHeight) / 2 + titleHeight / 2; // Center vertically considering title
+    // Better vertical positioning for mobile - ensure cards fit with title
+    let cardY = stackVertical ? max(titleHeight + 5, (height - totalHeight) / 2 + 20) : (height - cardHeight) / 2 + titleHeight / 2; // Center vertically considering title
 
     // Indoor card
     let indoorX = startX;
@@ -2104,13 +2111,14 @@ function drawLocationSelect() {
     text('🏠 INDOOR', indoorX + cardWidth / 2, indoorY + 35);
 
     textFont('Carter One');
-    textSize(isMobile ? min(cardWidth * 0.038, 13) : 15);
+    let infoTextSize = isMobile ? 11 : 15; // Fixed smaller size for mobile
+    textSize(infoTextSize);
     textStyle(NORMAL); // Remove italics
     fill(200, 200, 255);
     textAlign(LEFT);
     let infoX = indoorX + 18;
-    let lineHeight = isMobile ? min(cardWidth * 0.068, 23) : 28;
-    let startInfo = indoorY + 70;
+    let lineHeight = isMobile ? 18 : 28; // Fixed consistent line height for mobile
+    let startInfo = indoorY + (isMobile ? 60 : 70);
     text('✓ Controlled environment', infoX, startInfo);
     text('✓ No weather effects', infoX, startInfo + lineHeight);
     text('✓ Consistent lighting', infoX, startInfo + lineHeight * 2);
@@ -2119,12 +2127,14 @@ function drawLocationSelect() {
     text('✗ Light upgrades needed', infoX, startInfo + lineHeight * 4);
     text('✗ Higher electricity cost', infoX, startInfo + lineHeight * 5);
 
+    let btnHeight = isMobile ? 40 : 45;
+    let btnYOffset = isMobile ? 48 : 55;
     buttons.push(new Button(
-        indoorX + 30, 
-        indoorY + cardHeight - 55, 
-        cardWidth - 60, 
-        45, 
-        'GROW INDOOR', 
+        indoorX + 30,
+        indoorY + cardHeight - btnYOffset,
+        cardWidth - 60,
+        btnHeight,
+        'GROW INDOOR',
         () => startGrowing('indoor'),
         [100, 100, 220]
     ));
@@ -2153,25 +2163,26 @@ function drawLocationSelect() {
     text('🌞 OUTDOOR', outdoorX + cardWidth / 2, outdoorY + 35);
 
     textFont('Carter One');
-    textSize(isMobile ? min(cardWidth * 0.038, 13) : 15);
+    textSize(infoTextSize); // Use same size as indoor card
     textStyle(NORMAL); // Remove italics
     fill(200, 255, 200);
     textAlign(LEFT);
     let outX = outdoorX + 18;
-    text('✓ Natural sunlight (free)', outX, startInfo);
-    text('✓ Larger plants possible', outX, startInfo + lineHeight);
-    text('✓ No electricity needed', outX, startInfo + lineHeight * 2);
-    text('✓ Authentic experience', outX, startInfo + lineHeight * 3);
+    let outdoorStartInfo = outdoorY + (isMobile ? 60 : 70); // Use same offset as indoor
+    text('✓ Natural sunlight (free)', outX, outdoorStartInfo);
+    text('✓ Larger plants possible', outX, outdoorStartInfo + lineHeight);
+    text('✓ No electricity needed', outX, outdoorStartInfo + lineHeight * 2);
+    text('✓ Authentic experience', outX, outdoorStartInfo + lineHeight * 3);
     fill(255, 200, 150);
-    text('✗ Weather dependent', outX, startInfo + lineHeight * 4);
-    text('✗ More pest problems', outX, startInfo + lineHeight * 5);
+    text('✗ Weather dependent', outX, outdoorStartInfo + lineHeight * 4);
+    text('✗ More pest problems', outX, outdoorStartInfo + lineHeight * 5);
 
     buttons.push(new Button(
-        outdoorX + 30, 
-        outdoorY + cardHeight - 55, 
-        cardWidth - 60, 
-        45, 
-        'GROW OUTDOOR', 
+        outdoorX + 30,
+        outdoorY + cardHeight - btnYOffset,
+        cardWidth - 60,
+        btnHeight,
+        'GROW OUTDOOR',
         () => startGrowing('outdoor'),
         [76, 185, 80]
     ));
@@ -2590,7 +2601,7 @@ function drawGrowingScreen() {
 
 function drawTopUI() {
     let isMobile = width < 768;
-    let headerHeight = isMobile ? 90 : 65;
+    let headerHeight = isMobile ? 85 : 65; // Adjusted for 3-row mobile layout
 
     // Enhanced header with gradient background
     noStroke();
@@ -2614,63 +2625,66 @@ function drawTopUI() {
     noStroke();
 
     if (isMobile) {
-        // MOBILE LAYOUT - Compact 2-row layout with optimized spacing
+        // MOBILE LAYOUT - Compact 3-row layout with better spacing
         textAlign(LEFT, CENTER);
 
         // Row 1: Money and Day - more compact
         fill(255, 215, 0);
-        textSize(14);
+        textSize(13);
         textStyle(BOLD);
-        text(`💰 $${player.money}`, 6, 13);
+        text(`💰 $${player.money}`, 5, 12);
 
         fill(180, 255, 180);
-        textSize(11);
+        textSize(10);
         textStyle(NORMAL);
-        text(`📅 Day ${floor(gameTime / 180)}`, 6, 30);
+        text(`📅 Day ${floor(gameTime / 180)}`, 5, 27);
 
-        // Row 2: Compact inventory display - smaller text and icons
+        // Row 2 & 3: Inventory display in 2 rows of 3 items each - better spacing
         textAlign(CENTER, CENTER);
-        textSize(9);
+        textSize(8);
         textStyle(BOLD);
 
-        let itemW = width / 6;
-        let row2Y = 52;
+        let itemW = width / 3; // 3 items per row instead of 6
+        let row2Y = 48;
+        let row3Y = 70;
 
+        // Row 2: Water, Nitrogen, Phosphorus
         // Water
         fill(41, 128, 185, 40);
-        rect(0, row2Y - 10, itemW, 20, 0);
+        rect(0, row2Y - 10, itemW, 18, 0);
         fill(100, 200, 255);
         text(`💧\n${floor(player.inventory.water)}`, itemW * 0.5, row2Y);
 
         // Nitrogen
         fill(46, 125, 50, 40);
-        rect(itemW, row2Y - 10, itemW, 20, 0);
+        rect(itemW, row2Y - 10, itemW, 18, 0);
         fill(120, 255, 120);
         text(`🌱\n${floor(player.inventory.nutrients.nitrogen)}`, itemW * 1.5, row2Y);
 
         // Phosphorus
         fill(142, 68, 173, 40);
-        rect(itemW * 2, row2Y - 10, itemW, 20, 0);
+        rect(itemW * 2, row2Y - 10, itemW, 18, 0);
         fill(220, 130, 255);
         text(`🌸\n${floor(player.inventory.nutrients.phosphorus)}`, itemW * 2.5, row2Y);
 
+        // Row 3: Potassium, Pesticide, Light Power
         // Potassium
         fill(230, 126, 34, 40);
-        rect(itemW * 3, row2Y - 10, itemW, 20, 0);
+        rect(0, row3Y - 10, itemW, 18, 0);
         fill(255, 200, 120);
-        text(`🍌\n${floor(player.inventory.nutrients.potassium)}`, itemW * 3.5, row2Y);
+        text(`🍌\n${floor(player.inventory.nutrients.potassium)}`, itemW * 0.5, row3Y);
 
         // Pesticide
         fill(211, 84, 0, 40);
-        rect(itemW * 4, row2Y - 10, itemW, 20, 0);
+        rect(itemW, row3Y - 10, itemW, 18, 0);
         fill(255, 140, 140);
-        text(`🔫\n${player.inventory.pesticide}`, itemW * 4.5, row2Y);
+        text(`🔫\n${player.inventory.pesticide}`, itemW * 1.5, row3Y);
 
         // Light power
         fill(241, 196, 15, 40);
-        rect(itemW * 5, row2Y - 10, itemW, 20, 0);
+        rect(itemW * 2, row3Y - 10, itemW, 18, 0);
         fill(255, 255, 180);
-        text(`💡\n${player.inventory.lights.power}%`, itemW * 5.5, row2Y);
+        text(`💡\n${player.inventory.lights.power}%`, itemW * 2.5, row3Y);
 
     } else {
         // DESKTOP LAYOUT - Original design
@@ -2767,21 +2781,25 @@ function setupGrowingButtons() {
     }, [150, 100, 200]);
     buttons.push(pauseBtn);
 
-    // Mobile: larger buttons for better touch targets with optimized spacing
+    // Mobile: optimized layout with proper spacing to prevent overlap
     // Desktop: original compact layout
     let btnY = height - 105;
-    let btnHeight = isMobile ? 42 : 38;
-    let btnSpacing = isMobile ? 4 : 8;
+    let btnHeight = isMobile ? 40 : 38;
+    let btnSpacing = isMobile ? 3 : 8;
     let totalBtns = 6;
-    let availableWidth = isMobile ? width - (btnSpacing * 2) : width;
+    let sideMargin = isMobile ? 3 : 0; // Add side margins for mobile
+    let availableWidth = isMobile ? (width - sideMargin * 2) : width;
     let btnWidth = (availableWidth - btnSpacing * (totalBtns - 1)) / totalBtns;
-    // Ensure buttons don't get too narrow on small screens
-    if (isMobile && btnWidth < 50) {
-        btnWidth = 50;
-        btnSpacing = max(2, (width - btnWidth * totalBtns) / (totalBtns + 1));
+
+    // Ensure buttons don't get too narrow or too wide on different screens
+    if (isMobile) {
+        btnWidth = max(45, min(btnWidth, 65)); // Clamp button width between 45-65px on mobile
+        // Recalculate spacing with the constrained button width
+        let totalBtnWidth = btnWidth * totalBtns;
+        btnSpacing = max(2, (availableWidth - totalBtnWidth) / (totalBtns - 1));
     }
 
-    let x = btnSpacing;
+    let x = isMobile ? sideMargin : btnSpacing;
 
     textFont('Carter One');
 
@@ -2888,9 +2906,9 @@ function setupGrowingButtons() {
 
     // Bottom row - Harvest and Plant buttons with better mobile spacing
     btnY = height - 58;
-    x = btnSpacing;
-    let bottomBtnWidth = isMobile ? (width - btnSpacing * 3) / 2 : (width - btnSpacing * 3) / 2;
-    let bottomBtnHeight = isMobile ? 40 : btnHeight;
+    x = isMobile ? sideMargin : btnSpacing;
+    let bottomBtnWidth = isMobile ? (availableWidth - btnSpacing) / 2 : (width - btnSpacing * 3) / 2;
+    let bottomBtnHeight = isMobile ? 38 : btnHeight;
 
     let harvestBtn = new Button(x, btnY, bottomBtnWidth, bottomBtnHeight, '✂️ HARVEST', () => {
         playButtonSFX();
@@ -3342,13 +3360,15 @@ function drawShop() {
         buttons.push(btn);
     }
 
-    // Sell weed section
+    // Sell weed section - calculate ending Y position
+    let contentEndY = startY + Math.ceil(items.length / cols) * (cardH + (isMobile ? 10 : 15));
+
     if (player.harvestedWeed.length > 0) {
-        let sellY = startY + Math.ceil(items.length / cols) * (cardH + (isMobile ? 10 : 15)) + (isMobile ? 15 : 20);
-        
+        let sellY = contentEndY + (isMobile ? 15 : 20);
+
         fill(255, 215, 0);
         textAlign(CENTER, TOP);
-        textSize(24);
+        textSize(isMobile ? 20 : 24);
         textStyle(BOLD);
         text('💰 SELL HARVESTED WEED', width / 2, sellY);
 
@@ -3370,21 +3390,25 @@ function drawShop() {
 
             let sellPrice = weed.amount * weed.price;
             buttons.push(new Button(
-                width - 150, 
-                y + 8, 
-                130, 
-                30, 
-                `SELL $${sellPrice}`, 
+                width - 150,
+                y + 8,
+                130,
+                30,
+                `SELL $${sellPrice}`,
                 () => sellWeed(i),
                 [139, 195, 74]
             ));
         }
+        // Update contentEndY to include weed listings
+        contentEndY = sellStartY + player.harvestedWeed.length * 50 + 10;
     }
 
-    // Back button - positioned to avoid overlap
-    let backBtnY = isMobile ? height - 48 : height - 60;
+    // Back button - dynamically positioned below all content with padding
     let backBtnW = isMobile ? min(180, width * 0.8) : 200;
     let backBtnH = isMobile ? 42 : 45;
+    let backBtnPadding = isMobile ? 15 : 20;
+    let backBtnY = min(contentEndY + backBtnPadding, height - backBtnH - 10); // Ensure button fits on screen
+
     buttons.push(new Button(
         width / 2 - backBtnW / 2,
         backBtnY,
@@ -3474,14 +3498,14 @@ function drawPauseMenu() {
     textAlign(CENTER);
     textSize(isMobile ? 32 : 36);
     textStyle(NORMAL);
-    text('⏸ PAUSED', width / 2, panelY + (isMobile ? 45 : 50));
+    text('⏸ PAUSED', width / 2, panelY + (isMobile ? 40 : 50));
 
-    // Buttons - increased spacing from title
+    // Buttons - increased spacing from title for better mobile experience
     buttons = [];
     let btnW = panelW - 80;
     let btnH = isMobile ? 44 : 48;
     let btnX = panelX + 40;
-    let btnY = panelY + (isMobile ? 100 : 110); // Increased from 90 to 100-110
+    let btnY = panelY + (isMobile ? 85 : 110); // More spacing on mobile
     let btnSpacing = isMobile ? 56 : 60;
 
     // Resume button
@@ -3555,6 +3579,7 @@ function drawSettingsMenu() {
 
     // Title
     textFont('Bangers');
+    noStroke(); // Ensure no stroke on title
     fill(220, 255, 220);
     textAlign(CENTER);
     textSize(36);
@@ -3565,7 +3590,7 @@ function drawSettingsMenu() {
     textFont('Carter One');
     textSize(18);
     textStyle(NORMAL); // Remove any style variations
-    noStroke(); // Ensure no stroke/outline
+    noStroke(); // Ensure no stroke/outline on all text
     fill(180, 255, 180);
     textAlign(LEFT);
 
@@ -3573,7 +3598,9 @@ function drawSettingsMenu() {
     let contentY = panelY + 100;
     let lineHeight = 80;
 
-    // Music Volume
+    // Music Volume - explicitly ensure no stroke
+    noStroke();
+    fill(180, 255, 180);
     text('🎵 Music Volume', contentX, contentY);
     text(`${floor(audioSettings.musicVolume * 100)}%`, panelX + panelW - 80, contentY);
 
@@ -3591,6 +3618,7 @@ function drawSettingsMenu() {
 
     // SFX Volume
     contentY += lineHeight;
+    noStroke(); // Ensure no stroke
     fill(180, 255, 180);
     text('🔊 SFX Volume', contentX, contentY);
     text(`${floor(audioSettings.sfxVolume * 100)}%`, panelX + panelW - 80, contentY);
@@ -3605,11 +3633,13 @@ function drawSettingsMenu() {
 
     // Music Toggle
     contentY += lineHeight;
+    noStroke(); // Ensure no stroke
     fill(180, 255, 180);
     text('Music:', contentX, contentY);
 
     // SFX Toggle
     contentY += lineHeight;
+    noStroke(); // Ensure no stroke
     fill(180, 255, 180);
     text('Sound FX:', contentX, contentY);
 
@@ -3700,14 +3730,14 @@ function drawStrainListMenu() {
     buttons = [];
 
     // Strain grid - mobile responsive
-    let startY = isMobile ? 75 : 110;
+    let startY = isMobile ? 70 : 110;
     let cardW = isMobile ? min(105, (width - 30) / 3) : min(180, (width - 60) / 4);
-    let cardH = isMobile ? min(170, height * 0.28) : 240;
+    let cardH = isMobile ? min(155, height * 0.23) : 240; // Reduced height for mobile
     let cols = isMobile ? 3 : floor((width - 40) / (cardW + 10));
     let spacing = isMobile ? 5 : 10;
 
-    // More strains per page on mobile due to smaller cards
-    let rowsPerPage = isMobile ? 4 : 3;
+    // Adjusted rows per page for mobile to ensure cards fit with buttons
+    let rowsPerPage = isMobile ? 3 : 3; // Reduced from 4 to 3 rows for mobile to fit better
     let strainsPerPage = cols * rowsPerPage;
     let totalPages = ceil(totalCount / strainsPerPage);
     let startIdx = strainListPage * strainsPerPage;
@@ -3818,17 +3848,17 @@ function drawStrainListMenu() {
         }
     }
 
-    // Pagination
+    // Pagination - adjusted positioning for mobile
     if (totalPages > 1) {
         textAlign(CENTER);
         fill(255);
         textSize(isMobile ? 12 : 14);
-        let pageY = isMobile ? height - 80 : height - 100;
+        let pageY = isMobile ? height - 100 : height - 100;
         text(`Page ${strainListPage + 1} / ${totalPages}`, width / 2, pageY);
 
         let btnW = isMobile ? 70 : 80;
         let btnH = isMobile ? 32 : 35;
-        let btnY = isMobile ? height - 100 : height - 120;
+        let btnY = isMobile ? height - 120 : height - 120;
 
         if (strainListPage > 0) {
             buttons.push(new Button(width / 2 - 140, btnY, btnW, btnH, '⬅️ PREV', () => {
@@ -3845,9 +3875,10 @@ function drawStrainListMenu() {
         }
     }
 
-    // Back button
-    let backBtnY = isMobile ? height - 50 : height - 60;
-    buttons.push(new Button(width / 2 - 80, backBtnY, 160, 45, '⬅️ BACK', () => {
+    // Back button - positioned lower to avoid overlap
+    let backBtnY = isMobile ? height - 60 : height - 60;
+    let backBtnH = isMobile ? 40 : 45;
+    buttons.push(new Button(width / 2 - 80, backBtnY, 160, backBtnH, '⬅️ BACK', () => {
         playButtonSFX();
         gameState = 'paused';
     }, [100, 100, 150]));
@@ -3859,19 +3890,19 @@ function drawHybridizationScreen() {
 
     let isMobile = width < 768;
 
-    // Title - responsive
+    // Title - responsive with better sizing
     fill(255, 180, 255);
     textFont('Carter One');
     textAlign(CENTER);
-    textSize(isMobile ? min(width * 0.068, 24) : 32);
-    text('🧬 HYBRIDIZATION LAB', width / 2, isMobile ? 22 : 30);
+    textSize(isMobile ? min(width * 0.06, 22) : 32);
+    text('🧬 HYBRIDIZATION LAB', width / 2, isMobile ? 20 : 30);
 
-    // Instructions - responsive and wrapped for mobile
+    // Instructions - responsive and wrapped for mobile with smaller text
     fill(200, 200, 255);
-    textSize(isMobile ? 11 : 14);
+    textSize(isMobile ? 10 : 14);
     if (isMobile) {
-        text('Select two plants to cross-breed', width / 2, 42);
-        text('and create new strains!', width / 2, 56);
+        text('Select two plants to cross-breed', width / 2, 38);
+        text('and create new strains!', width / 2, 50);
     } else {
         text('Select two plants to cross-breed and create new strains!', width / 2, 65);
     }
@@ -3900,11 +3931,11 @@ function drawHybridizationScreen() {
 
     // Display plant selection - mobile responsive
     let cardW = isMobile ? min(width * 0.42, 140) : min(220, (width - 60) / 3);
-    let cardH = isMobile ? min(200, height * 0.32) : 280;
+    let cardH = isMobile ? min(190, height * 0.3) : 280; // Slightly reduced for mobile
     let spacing = isMobile ? 8 : 20;
     let cardsPerRow = isMobile ? 2 : 3;
     let startX = (width - (min(cardsPerRow, breedablePlants.length) * cardW + (min(cardsPerRow, breedablePlants.length) - 1) * spacing)) / 2;
-    let y = isMobile ? 75 : 110;
+    let y = isMobile ? 65 : 110; // Start higher on mobile to fit better
 
     for (let i = 0; i < min(breedablePlants.length, 6); i++) {
         let plant = breedablePlants[i];
