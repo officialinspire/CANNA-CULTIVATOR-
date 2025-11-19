@@ -640,6 +640,7 @@ let strainListPage = 0; // For pagination in strain list menu
 // === UI ELEMENTS ===
 let buttons = [];
 let notifications = [];
+let notificationBounds = []; // Track notification positions for tap-to-clear
 
 // === PLANT CLASS ===
 class Plant {
@@ -1515,6 +1516,9 @@ function displayNotifications() {
     let fontSize = isMobile ? 12 : 12; // More readable size
     let xOffset, yOffset;
 
+    // Clear notification bounds for new frame
+    notificationBounds = [];
+
     // On mobile, position at bottom to avoid overlap with UI elements
     // On desktop, position at top left as before
     if (isMobile) {
@@ -1523,16 +1527,23 @@ function displayNotifications() {
         // Different positioning based on game state
         let bottomMargin = 180; // Default margin for gameplay screen
         if (gameState === 'locationSelect') {
-            bottomMargin = 380; // Further increased margin to avoid covering location cards on mobile
+            bottomMargin = Math.max(400, height * 0.7); // Dynamic margin to avoid covering location cards on mobile
         } else if (gameState === 'strainSelect') {
             bottomMargin = 200; // Margin for strain selection
+        } else if (gameState === 'seedSelect') {
+            bottomMargin = Math.max(280, height * 0.55); // Dynamic margin for seed selection to avoid overlap
         } else if (gameState === 'shop' || gameState === 'hybridization' || gameState === 'strainList') {
             bottomMargin = 120; // Margin for menus with bottom buttons
         }
         yOffset = height - bottomMargin; // Start above UI elements with margin
     } else {
+        // Desktop positioning - also consider game state
         xOffset = 10; // Left margin on desktop
-        yOffset = 75; // Start below the top UI bar on desktop
+        if (gameState === 'locationSelect' || gameState === 'seedSelect' || gameState === 'strainSelect') {
+            yOffset = 85; // Start a bit lower on desktop for selection screens to avoid title overlap
+        } else {
+            yOffset = 75; // Start below the top UI bar on desktop
+        }
     }
 
     for (let i = notifications.length - 1; i >= 0; i--) {
@@ -1554,11 +1565,18 @@ function displayNotifications() {
                      notif.type === 'error' ? [244, 67, 54] : [33, 150, 243];
 
         push();
-        // Notification background
+        // Notification background with hover effect
         fill(bgColor[0], bgColor[1], bgColor[2], notif.alpha * 0.95);
         stroke(255, notif.alpha);
         strokeWeight(2);
         rect(xOffset, yOffset, notifWidth, notifHeight, 8);
+
+        // Add clickable indicator (small X icon on the right)
+        fill(255, notif.alpha * 0.7);
+        textFont('Arial');
+        textAlign(RIGHT, CENTER);
+        textSize(14);
+        text('✕', xOffset + notifWidth - 10, yOffset + notifHeight / 2);
 
         // Notification text
         textFont('Carter One');
@@ -1568,6 +1586,15 @@ function displayNotifications() {
         textSize(fontSize);
         text(notif.message, isMobile ? xOffset + notifWidth / 2 : xOffset + 10, yOffset + notifHeight / 2);
         pop();
+
+        // Store notification bounds for tap detection
+        notificationBounds.push({
+            x: xOffset,
+            y: yOffset,
+            width: notifWidth,
+            height: notifHeight,
+            index: i
+        });
 
         // Move position for next notification
         if (isMobile) {
@@ -4174,6 +4201,17 @@ function performHybridization(parent1, parent2) {
 
 // === MOUSE/TOUCH HANDLING ===
 function mousePressed() {
+    // Check if tap/click is on a notification (tap to clear)
+    for (let notifBound of notificationBounds) {
+        if (mouseX >= notifBound.x && mouseX <= notifBound.x + notifBound.width &&
+            mouseY >= notifBound.y && mouseY <= notifBound.y + notifBound.height) {
+            // Remove the tapped notification
+            notifications.splice(notifBound.index, 1);
+            playButtonSFX();
+            return; // Stop processing other clicks
+        }
+    }
+
     // Handle button clicks
     for (let btn of buttons) {
         if (btn.isClicked(mouseX, mouseY)) {
@@ -4215,8 +4253,8 @@ function setupIntroVideoHandling() {
 
         // After fade out completes, hide video and show menu
         setTimeout(() => {
+            videoIntro.classList.remove('show');
             videoIntro.classList.add('hidden');
-            videoIntro.style.display = 'none';
             gameState = 'titleScreen';
             videoPlaying = false;
 
@@ -4234,8 +4272,12 @@ function setupIntroVideoHandling() {
             tapToStart.classList.add('fade-out');
 
             // Show and start video with audio
-            videoIntro.style.display = 'flex';
+            videoIntro.classList.remove('hidden');
+            videoIntro.classList.add('show');
             introVideoElement.muted = false; // Enable audio
+
+            // Force video to be visible
+            introVideoElement.style.display = 'block';
 
             // Try to play the video with audio
             const playPromise = introVideoElement.play();
@@ -4249,7 +4291,11 @@ function setupIntroVideoHandling() {
                     console.log('⚠ Video play failed, trying muted:', error);
                     // Fallback to muted if audio fails
                     introVideoElement.muted = true;
-                    introVideoElement.play().catch(e => {
+                    introVideoElement.play().then(() => {
+                        console.log('✓ Video playing muted');
+                        videoPlaying = true;
+                        videoLoaded = true;
+                    }).catch(e => {
                         console.log('✗ Muted video also failed, showing menu:', e);
                         showMenuScreen();
                     });
