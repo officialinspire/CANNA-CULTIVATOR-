@@ -685,11 +685,14 @@ function addNotification(message, type = 'info') {
 }
 
 function displayNotifications() {
+    let xOffset = 10; // Left margin
     let yOffset = 75; // Start below the top UI bar (65px + 10px margin)
+    let notifWidth = min(320, width * 0.4); // Responsive width, max 320px
+
     for (let i = notifications.length - 1; i >= 0; i--) {
         let notif = notifications[i];
         let age = gameTime - notif.time;
-        
+
         // Much faster clearing - after 90 frames (reduced from 180)
         if (age > 90) {
             notif.alpha -= 8; // Faster fade
@@ -704,19 +707,19 @@ function displayNotifications() {
                      notif.type === 'error' ? [244, 67, 54] : [33, 150, 243];
 
         push();
-        // Notification background
+        // Notification background - positioned in left corner
         fill(bgColor[0], bgColor[1], bgColor[2], notif.alpha * 0.95);
         stroke(255, notif.alpha);
         strokeWeight(2);
-        rect(width / 2 - 180, yOffset, 360, 38, 8);
+        rect(xOffset, yOffset, notifWidth, 38, 8);
 
-        // Notification text
+        // Notification text - left aligned
         textFont('Baloo 2');
         fill(255, notif.alpha);
         noStroke();
-        textAlign(CENTER, CENTER);
-        textSize(13);
-        text(notif.message, width / 2, yOffset + 19);
+        textAlign(LEFT, CENTER);
+        textSize(12);
+        text(notif.message, xOffset + 10, yOffset + 19);
         pop();
 
         yOffset += 43;
@@ -864,15 +867,16 @@ function drawStrainSelect() {
     fill(180, 255, 180);
     text('Select your first cannabis seed (Like choosing your starter Pokemon!)', width / 2, 58);
 
-    // Strain cards - perfectly centered
+    // Strain cards - perfectly centered horizontally AND vertically
     let cardWidth = 240;
     let cardHeight = 270;
     let totalWidth = cardWidth * 3;
     let spacing = 20;
     totalWidth += spacing * 2; // Add spacing between cards
-    
-    let startX = (width - totalWidth) / 2; // Center the whole group
-    let startY = 90;
+
+    let startX = (width - totalWidth) / 2; // Center the whole group horizontally
+    let titleHeight = 70; // Space for title
+    let startY = (height - cardHeight) / 2 + titleHeight / 2; // Center vertically considering title
 
     buttons = [];
 
@@ -1001,16 +1005,18 @@ function drawLocationSelect() {
 
     buttons = [];
 
-    // Cards with perfect centering
+    // Cards with perfect centering - horizontally AND vertically
     let cardWidth = 340;
     let cardHeight = 330;
     let spacing = 30;
     let totalWidth = cardWidth * 2 + spacing;
     let startX = (width - totalWidth) / 2;
+    let titleHeight = 50; // Space for title
+    let cardY = (height - cardHeight) / 2 + titleHeight / 2; // Center vertically considering title
 
     // Indoor card
     let indoorX = startX;
-    let indoorY = 80;
+    let indoorY = cardY;
     
     // Shadow
     fill(0, 0, 0, 80);
@@ -1056,7 +1062,7 @@ function drawLocationSelect() {
 
     // Outdoor card
     let outdoorX = startX + cardWidth + spacing;
-    let outdoorY = 80;
+    let outdoorY = cardY;
     
     // Shadow
     fill(0, 0, 0, 80);
@@ -1119,70 +1125,183 @@ let selectedPlant = null;
 function drawGrowingScreen() {
     // Background gradient based on location
     if (growLocation === 'indoor') {
-        // Indoor room
-        let bgColor = lerpColor(color(30, 30, 50), color(40, 40, 60), sin(gameTime * 0.01) * 0.5 + 0.5);
+        // Indoor grow tent - enhanced graphics
+        // Dark background with subtle color variation
+        let bgColor = lerpColor(color(25, 28, 35), color(35, 38, 45), sin(gameTime * 0.01) * 0.5 + 0.5);
         background(bgColor);
-        
-        // Room walls with perspective
-        fill(45, 45, 65, 150);
-        quad(0, 0, width, 0, width * 0.85, height - 150, width * 0.15, height - 150);
-        
-        // Floor
-        fill(40, 40, 60);
-        rect(0, height - 150, width, 150);
-        
-        // Floor tiles
-        stroke(30, 30, 50);
-        strokeWeight(1);
-        for (let x = 0; x < width; x += 50) {
-            line(x, height - 150, x, height);
+
+        // Back wall - grow tent reflective material
+        noStroke();
+        fill(45, 48, 58);
+        rect(width * 0.1, 0, width * 0.8, height - 140);
+
+        // Reflective mylar effect on walls
+        fill(55, 58, 68, 180);
+        for (let i = 0; i < 8; i++) {
+            let x = width * 0.1 + i * (width * 0.8 / 8);
+            quad(x, 0, x + width * 0.1, 0, x + width * 0.1, height - 140, x, height - 140);
         }
-        for (let y = height - 150; y < height; y += 50) {
+
+        // Side walls with depth
+        fill(38, 41, 50);
+        triangle(0, 0, width * 0.1, 0, width * 0.1, height - 140);
+        triangle(0, 0, 0, height - 140, width * 0.1, height - 140);
+
+        fill(38, 41, 50);
+        triangle(width, 0, width * 0.9, 0, width * 0.9, height - 140);
+        triangle(width, 0, width, height - 140, width * 0.9, height - 140);
+
+        // Floor - concrete/tent floor
+        fill(48, 51, 58);
+        rect(0, height - 140, width, 140);
+
+        // Floor texture with tiles
+        stroke(35, 38, 45);
+        strokeWeight(2);
+        for (let x = 0; x < width; x += 60) {
+            line(x, height - 140, x, height);
+        }
+        for (let y = height - 140; y < height; y += 60) {
             line(0, y, width, y);
         }
-        
-        // Grow lights
+
+        // Floor gradient for depth
+        noStroke();
+        fill(28, 31, 38, 100);
+        rect(0, height - 140, width, 40);
+
+        // Professional LED grow lights with realistic glow
         noStroke();
         for (let i = 0; i < 3; i++) {
             let lx = width / 4 + i * width / 4;
-            fill(255, 200, 255, 100);
-            ellipse(lx, 40, 80, 30);
-            fill(200, 150, 255, 50);
-            for (let j = 0; j < 3; j++) {
-                ellipse(lx, 40 + j * 30, 100 - j * 20, 10);
+            let ly = 30;
+
+            // Light fixture body
+            fill(80, 80, 90);
+            rect(lx - 45, ly - 12, 90, 24, 4);
+            fill(60, 60, 70);
+            rect(lx - 42, ly - 10, 84, 20, 3);
+
+            // LED panels
+            fill(220, 180, 255);
+            for (let led = 0; led < 6; led++) {
+                let ledX = lx - 35 + led * 14;
+                rect(ledX, ly - 6, 10, 12, 2);
             }
+
+            // Powerful LED light beam effect
+            fill(255, 230, 255, 40);
+            triangle(lx - 50, ly + 12, lx + 50, ly + 12, lx + 100, height - 140);
+            triangle(lx - 50, ly + 12, lx + 50, ly + 12, lx - 100, height - 140);
+
+            // Concentrated light cone
+            fill(255, 220, 255, 60);
+            triangle(lx - 35, ly + 12, lx + 35, ly + 12, lx + 60, height - 140);
+            triangle(lx - 35, ly + 12, lx + 35, ly + 12, lx - 60, height - 140);
+
+            // Bright center beam
+            fill(255, 240, 255, 80);
+            triangle(lx - 25, ly + 12, lx + 25, ly + 12, lx, height - 140);
+
+            // Glow around light
+            fill(255, 200, 255, 80);
+            ellipse(lx, ly, 100, 40);
+            fill(255, 220, 255, 50);
+            ellipse(lx, ly, 130, 50);
+        }
+
+        // Atmospheric haze from humidity
+        fill(200, 220, 255, 15);
+        for (let i = 0; i < 5; i++) {
+            let hY = height - 140 + i * 30;
+            ellipse(width / 2, hY, width * 0.8, 40);
         }
     } else {
-        // Outdoor sky with realistic gradient
+        // Outdoor environment - enhanced realistic graphics
         let timeOfDay = (sin(dayNightCycle) + 1) / 2; // 0 = night, 1 = day
-        
-        // Sky colors
-        let dayTopColor = color(135, 206, 250);
-        let dayBottomColor = color(200, 230, 255);
-        let nightTopColor = color(10, 15, 35);
-        let nightBottomColor = color(40, 45, 70);
-        
-        let topColor = lerpColor(nightTopColor, dayTopColor, timeOfDay);
-        let bottomColor = lerpColor(nightBottomColor, dayBottomColor, timeOfDay);
-        
-        // Gradient sky
+
+        // Enhanced sky colors with more vibrant sunset/sunrise transitions
+        let dayTopColor = color(87, 167, 230);      // Bright blue
+        let dayBottomColor = color(165, 210, 240);  // Light blue horizon
+        let sunsetTopColor = color(255, 140, 100);  // Orange-pink
+        let sunsetBottomColor = color(255, 200, 150); // Peachy horizon
+        let nightTopColor = color(10, 15, 45);      // Deep night blue
+        let nightBottomColor = color(50, 55, 85);   // Lighter night horizon
+
+        let topColor, bottomColor;
+
+        // Determine sky colors based on time
+        if (timeOfDay > 0.6) {
+            // Full daytime
+            topColor = dayTopColor;
+            bottomColor = dayBottomColor;
+        } else if (timeOfDay > 0.4) {
+            // Sunrise
+            let sunriseMix = map(timeOfDay, 0.4, 0.6, 0, 1);
+            topColor = lerpColor(sunsetTopColor, dayTopColor, sunriseMix);
+            bottomColor = lerpColor(sunsetBottomColor, dayBottomColor, sunriseMix);
+        } else if (timeOfDay > 0.15) {
+            // Sunset
+            let sunsetMix = map(timeOfDay, 0.15, 0.4, 0, 1);
+            topColor = lerpColor(nightTopColor, sunsetTopColor, sunsetMix);
+            bottomColor = lerpColor(nightBottomColor, sunsetBottomColor, sunsetMix);
+        } else {
+            // Full nighttime
+            topColor = nightTopColor;
+            bottomColor = nightBottomColor;
+        }
+
+        // Gradient sky with smooth transitions
         for (let y = 0; y < height - 100; y++) {
             let inter = map(y, 0, height - 100, 0, 1);
-            let c = lerpColor(topColor, bottomColor, inter);
+            let c = lerpColor(topColor, bottomColor, inter * inter); // Quadratic for more realistic
             stroke(c);
             line(0, y, width, y);
         }
-        
-        // Clouds during day
+
+        // Distant mountains/hills for depth
+        noStroke();
+        fill(70, 120, 90, 180 * timeOfDay);
+        beginShape();
+        vertex(0, height - 100);
+        for (let x = 0; x <= width; x += 50) {
+            let hillHeight = sin(x * 0.01 + 1) * 40 + 60;
+            vertex(x, height - 100 - hillHeight);
+        }
+        vertex(width, height - 100);
+        endShape(CLOSE);
+
+        // Second layer of closer hills
+        fill(90, 140, 100, 200 * timeOfDay);
+        beginShape();
+        vertex(0, height - 100);
+        for (let x = 0; x <= width; x += 40) {
+            let hillHeight = sin(x * 0.015 + 3) * 30 + 40;
+            vertex(x, height - 100 - hillHeight);
+        }
+        vertex(width, height - 100);
+        endShape(CLOSE);
+
+        // Beautiful clouds during day with variety
         if (timeOfDay > 0.3) {
             noStroke();
-            fill(255, 255, 255, 150 * timeOfDay);
-            for (let i = 0; i < 5; i++) {
-                let cx = (i * 200 + gameTime * 0.5) % (width + 100) - 50;
-                let cy = 60 + sin(i * 2) * 40;
-                ellipse(cx, cy, 80, 40);
-                ellipse(cx - 25, cy + 5, 60, 35);
-                ellipse(cx + 25, cy + 5, 60, 35);
+            for (let i = 0; i < 7; i++) {
+                let cx = (i * 180 + gameTime * 0.4) % (width + 150) - 75;
+                let cy = 50 + sin(i * 2.5) * 50;
+                let cloudOpacity = 180 * timeOfDay;
+
+                // Fluffy cloud shape
+                fill(255, 255, 255, cloudOpacity * 0.9);
+                ellipse(cx, cy, 90, 45);
+                ellipse(cx - 30, cy + 8, 70, 40);
+                ellipse(cx + 30, cy + 8, 70, 40);
+                ellipse(cx - 15, cy - 5, 60, 35);
+                ellipse(cx + 15, cy - 5, 60, 35);
+
+                // Cloud highlights
+                fill(255, 255, 255, cloudOpacity);
+                ellipse(cx - 10, cy - 8, 40, 25);
+                ellipse(cx + 10, cy - 8, 40, 25);
             }
         }
         
@@ -1247,21 +1366,84 @@ function drawGrowingScreen() {
             }
         }
         pop();
-        
-        // Ground layers
-        fill(76, 187, 23); // Grass
+
+        // Enhanced ground layers with better texture
         noStroke();
-        rect(0, height - 110, width, 15);
-        
-        fill(101, 67, 33); // Dirt
+
+        // Rich topsoil layer
+        fill(101, 67, 33);
         rect(0, height - 95, width, 95);
-        
-        // Grass blades
-        stroke(60, 150, 20);
-        strokeWeight(2);
-        for (let i = 0; i < width; i += 8) {
-            let gh = random(8, 15);
-            line(i, height - 110, i + random(-2, 2), height - 110 - gh);
+
+        // Soil texture variation
+        for (let i = 0; i < 30; i++) {
+            fill(random(80, 120), random(50, 80), random(25, 45), random(30, 80));
+            let sx = random(width);
+            let sy = random(height - 95, height);
+            ellipse(sx, sy, random(5, 15), random(3, 8));
+        }
+
+        // Lush grass layer - varied green tones
+        let grassBaseColor = lerpColor(color(65, 150, 30), color(85, 180, 40), timeOfDay);
+        fill(grassBaseColor);
+        rect(0, height - 110, width, 15);
+
+        // Grass texture patches
+        fill(red(grassBaseColor) - 10, green(grassBaseColor) - 10, blue(grassBaseColor) - 10, 100);
+        for (let i = 0; i < 15; i++) {
+            let gx = random(width);
+            ellipse(gx, height - 105, random(20, 50), random(8, 12));
+        }
+
+        // Dense grass blades with variety
+        for (let i = 0; i < width; i += 4) {
+            let bladeHeight = random(10, 18);
+            let bladeColor = lerpColor(
+                color(50, 130, 25),
+                color(80, 170, 35),
+                random()
+            );
+            stroke(bladeColor);
+            strokeWeight(random(1, 2.5));
+            let bendX = random(-3, 3);
+            let bendY = height - 110 - bladeHeight;
+
+            // Curved grass blade
+            noFill();
+            beginShape();
+            vertex(i, height - 110);
+            vertex(i + bendX * 0.3, height - 110 - bladeHeight * 0.3);
+            vertex(i + bendX * 0.6, height - 110 - bladeHeight * 0.7);
+            vertex(i + bendX, bendY);
+            endShape();
+        }
+
+        // Wildflowers scattered in grass (daytime only)
+        if (timeOfDay > 0.5) {
+            noStroke();
+            for (let i = 0; i < 12; i++) {
+                let fx = (i * 67 + gameTime * 0.1) % width;
+                let fy = height - 110 - random(5, 12);
+
+                // Flower colors - yellows, purples, whites
+                let flowerColors = [
+                    color(255, 220, 50),
+                    color(200, 100, 255),
+                    color(255, 255, 255),
+                    color(255, 150, 200)
+                ];
+                let flowerColor = random(flowerColors);
+
+                // Flower petals
+                fill(flowerColor);
+                for (let p = 0; p < 5; p++) {
+                    let angle = (p / 5) * TWO_PI;
+                    ellipse(fx + cos(angle) * 2, fy + sin(angle) * 2, 4, 4);
+                }
+
+                // Flower center
+                fill(255, 200, 50);
+                ellipse(fx, fy, 3, 3);
+            }
         }
     }
 
@@ -1287,51 +1469,97 @@ function drawGrowingScreen() {
 }
 
 function drawTopUI() {
-    // Dark background with transparency
-    fill(15, 25, 15, 240);
+    // Enhanced header with gradient background
     noStroke();
-    rect(0, 0, width, 65);
-    
-    // Border
-    stroke(76, 175, 80);
-    strokeWeight(2);
+    // Gradient from dark green to darker green
+    for (let i = 0; i < 65; i++) {
+        let alpha = map(i, 0, 65, 250, 235);
+        let greenShade = map(i, 0, 65, 15, 20);
+        fill(greenShade, greenShade + 10, greenShade, alpha);
+        rect(0, i, width, 1);
+    }
+
+    // Decorative border with glow effect
+    stroke(76, 175, 80, 200);
+    strokeWeight(3);
     line(0, 65, width, 65);
+    stroke(100, 220, 100, 100);
+    strokeWeight(1);
+    line(0, 63, width, 63);
 
     textFont('Fredoka');
-    
-    // Money
     noStroke();
+
+    // LEFT SECTION - Money & Day
+    // Money with icon background
+    fill(255, 215, 0, 30);
+    ellipse(35, 22, 50, 50);
     fill(255, 215, 0);
     textAlign(LEFT, CENTER);
-    textSize(20);
-    text(`💰 $${player.money}`, 15, 18);
+    textSize(22);
+    textStyle(BOLD);
+    text(`💰 $${player.money}`, 15, 20);
 
-    // Day counter with better formatting
-    fill(150, 255, 150);
-    textSize(16);
-    text(`📅 Day ${floor(gameTime / 180)}`, 15, 45); // Adjusted for slower time
+    // Day counter with subtle background
+    fill(124, 179, 66, 30);
+    rect(10, 38, 140, 22, 4);
+    fill(180, 255, 180);
+    textSize(15);
+    textStyle(NORMAL);
+    text(`📅 Day ${floor(gameTime / 180)}`, 18, 48);
 
-    // Inventory quick view - better organized
-    textSize(14);
-    let invX = width - 420;
-    
+    // CENTER/RIGHT SECTION - Organized inventory with better spacing
+    let rightStartX = width - 460;
+    let topRowY = 20;
+    let bottomRowY = 45;
+    let itemSpacing = 110;
+
+    // Background panels for better organization
+    fill(41, 128, 185, 25);
+    rect(rightStartX - 5, topRowY - 14, itemSpacing - 8, 26, 4);
+    fill(46, 125, 50, 25);
+    rect(rightStartX + itemSpacing - 5, topRowY - 14, itemSpacing - 8, 26, 4);
+    fill(142, 68, 173, 25);
+    rect(rightStartX + itemSpacing * 2 - 5, topRowY - 14, itemSpacing - 8, 26, 4);
+    fill(230, 126, 34, 25);
+    rect(rightStartX + itemSpacing * 3 - 5, topRowY - 14, itemSpacing - 8, 26, 4);
+
+    // Top row - Water and NPK nutrients
+    textAlign(CENTER, CENTER);
+    textSize(15);
+    textStyle(BOLD);
+
+    // Water
     fill(100, 200, 255);
-    text(`💧 ${floor(player.inventory.water)}`, invX, 18);
-    
-    fill(100, 255, 100);
-    text(`N: ${floor(player.inventory.nutrients.nitrogen)}`, invX + 90, 18);
-    
-    fill(200, 100, 255);
-    text(`P: ${floor(player.inventory.nutrients.phosphorus)}`, invX + 180, 18);
-    
-    fill(255, 200, 100);
-    text(`K: ${floor(player.inventory.nutrients.potassium)}`, invX + 270, 18);
-    
-    fill(255, 120, 120);
-    text(`🔫 ${player.inventory.pesticide}`, invX + 90, 45);
-    
-    fill(255, 255, 150);
-    text(`💡 ${player.inventory.lights.power}%`, invX + 180, 45);
+    text(`💧 ${floor(player.inventory.water)}`, rightStartX + 45, topRowY);
+
+    // Nitrogen
+    fill(120, 255, 120);
+    text(`🌱 ${floor(player.inventory.nutrients.nitrogen)}`, rightStartX + itemSpacing + 45, topRowY);
+
+    // Phosphorus
+    fill(220, 130, 255);
+    text(`🌸 ${floor(player.inventory.nutrients.phosphorus)}`, rightStartX + itemSpacing * 2 + 45, topRowY);
+
+    // Potassium
+    fill(255, 200, 120);
+    text(`🍌 ${floor(player.inventory.nutrients.potassium)}`, rightStartX + itemSpacing * 3 + 45, topRowY);
+
+    // Bottom row - Pesticide and Light power
+    fill(211, 84, 0, 25);
+    rect(rightStartX + itemSpacing - 5, bottomRowY - 14, itemSpacing - 8, 26, 4);
+    fill(241, 196, 15, 25);
+    rect(rightStartX + itemSpacing * 2 - 5, bottomRowY - 14, itemSpacing - 8, 26, 4);
+
+    // Pesticide
+    fill(255, 140, 140);
+    text(`🔫 ${player.inventory.pesticide}`, rightStartX + itemSpacing + 45, bottomRowY);
+
+    // Light power
+    fill(255, 255, 180);
+    text(`💡 ${player.inventory.lights.power}%`, rightStartX + itemSpacing * 2 + 45, bottomRowY);
+
+    textStyle(NORMAL);
 }
 
 function drawControlPanel() {
@@ -1364,85 +1592,100 @@ function setupGrowingButtons() {
     
     textFont('Baloo 2');
 
-    // Water button
+    // Water button - earthy blue/cyan color
     let waterBtn = new Button(x, btnY, btnWidth, btnHeight, '💧', () => {
-        if (selectedPlant && player.inventory.water >= 10) {
+        if (!selectedPlant) {
+            addNotification('❌ Select a plant first!', 'error');
+        } else if (player.inventory.water < 10) {
+            addNotification('❌ Not enough water!', 'error');
+        } else {
             selectedPlant.water(30);
             player.inventory.water -= 10;
-        } else if (!selectedPlant) {
-            addNotification('❌ Select a plant first!', 'error');
-        } else {
-            addNotification('❌ Not enough water!', 'error');
         }
-    }, [33, 150, 243]);
-    waterBtn.enabled = selectedPlant && player.inventory.water >= 10;
+    }, [41, 128, 185]); // Ocean blue
+    waterBtn.enabled = true;
+    if (!selectedPlant || player.inventory.water < 10) {
+        waterBtn.color = [31, 98, 145]; // Dimmed ocean blue
+    }
     buttons.push(waterBtn);
     x += btnWidth + btnSpacing;
 
-    // Nitrogen button
+    // Nitrogen button - natural forest green
     let nBtn = new Button(x, btnY, btnWidth, btnHeight, '🌱 N', () => {
-        if (selectedPlant && player.inventory.nutrients.nitrogen >= 5) {
+        if (!selectedPlant) {
+            addNotification('❌ Select a plant first!', 'error');
+        } else if (player.inventory.nutrients.nitrogen < 5) {
+            addNotification('❌ Not enough nitrogen!', 'error');
+        } else {
             selectedPlant.feed('nitrogen', 30);
             player.inventory.nutrients.nitrogen -= 5;
-        } else if (!selectedPlant) {
-            addNotification('❌ Select a plant first!', 'error');
-        } else {
-            addNotification('❌ Not enough nitrogen!', 'error');
         }
-    }, [76, 175, 80]);
-    nBtn.enabled = selectedPlant && player.inventory.nutrients.nitrogen >= 5;
+    }, [46, 125, 50]); // Forest green
+    nBtn.enabled = true;
+    if (!selectedPlant || player.inventory.nutrients.nitrogen < 5) {
+        nBtn.color = [36, 95, 40]; // Dimmed forest green
+    }
     buttons.push(nBtn);
     x += btnWidth + btnSpacing;
 
-    // Phosphorus button
+    // Phosphorus button - earthy purple/amethyst
     let pBtn = new Button(x, btnY, btnWidth, btnHeight, '🌸 P', () => {
-        if (selectedPlant && player.inventory.nutrients.phosphorus >= 5) {
+        if (!selectedPlant) {
+            addNotification('❌ Select a plant first!', 'error');
+        } else if (player.inventory.nutrients.phosphorus < 5) {
+            addNotification('❌ Not enough phosphorus!', 'error');
+        } else {
             selectedPlant.feed('phosphorus', 30);
             player.inventory.nutrients.phosphorus -= 5;
-        } else if (!selectedPlant) {
-            addNotification('❌ Select a plant first!', 'error');
-        } else {
-            addNotification('❌ Not enough phosphorus!', 'error');
         }
-    }, [156, 39, 176]);
-    pBtn.enabled = selectedPlant && player.inventory.nutrients.phosphorus >= 5;
+    }, [142, 68, 173]); // Amethyst purple
+    pBtn.enabled = true;
+    if (!selectedPlant || player.inventory.nutrients.phosphorus < 5) {
+        pBtn.color = [102, 48, 133]; // Dimmed amethyst
+    }
     buttons.push(pBtn);
     x += btnWidth + btnSpacing;
 
-    // Potassium button
+    // Potassium button - natural amber/honey
     let kBtn = new Button(x, btnY, btnWidth, btnHeight, '🍌 K', () => {
-        if (selectedPlant && player.inventory.nutrients.potassium >= 5) {
+        if (!selectedPlant) {
+            addNotification('❌ Select a plant first!', 'error');
+        } else if (player.inventory.nutrients.potassium < 5) {
+            addNotification('❌ Not enough potassium!', 'error');
+        } else {
             selectedPlant.feed('potassium', 30);
             player.inventory.nutrients.potassium -= 5;
-        } else if (!selectedPlant) {
-            addNotification('❌ Select a plant first!', 'error');
-        } else {
-            addNotification('❌ Not enough potassium!', 'error');
         }
-    }, [255, 152, 0]);
-    kBtn.enabled = selectedPlant && player.inventory.nutrients.potassium >= 5;
+    }, [230, 126, 34]); // Amber/carrot orange
+    kBtn.enabled = true;
+    if (!selectedPlant || player.inventory.nutrients.potassium < 5) {
+        kBtn.color = [180, 96, 24]; // Dimmed amber
+    }
     buttons.push(kBtn);
     x += btnWidth + btnSpacing;
 
-    // Pesticide button
+    // Pesticide button - earthy terracotta red
     let pestBtn = new Button(x, btnY, btnWidth, btnHeight, '🔫', () => {
-        if (selectedPlant && player.inventory.pesticide >= 1) {
+        if (!selectedPlant) {
+            addNotification('❌ Select a plant first!', 'error');
+        } else if (player.inventory.pesticide < 1) {
+            addNotification('❌ No pesticide!', 'error');
+        } else {
             selectedPlant.treatPests();
             player.inventory.pesticide -= 1;
-        } else if (!selectedPlant) {
-            addNotification('❌ Select a plant first!', 'error');
-        } else {
-            addNotification('❌ No pesticide!', 'error');
         }
-    }, [244, 67, 54]);
-    pestBtn.enabled = selectedPlant && player.inventory.pesticide >= 1;
+    }, [211, 84, 0]); // Terracotta red-orange
+    pestBtn.enabled = true;
+    if (!selectedPlant || player.inventory.pesticide < 1) {
+        pestBtn.color = [161, 64, 0]; // Dimmed terracotta
+    }
     buttons.push(pestBtn);
     x += btnWidth + btnSpacing;
 
-    // Shop button
+    // Shop button - golden/honey
     buttons.push(new Button(x, btnY, btnWidth, btnHeight, '🏪', () => {
         gameState = 'shop';
-    }, [255, 193, 7]));
+    }, [241, 196, 15])); // Golden yellow
 
     // Bottom row - Harvest and Plant buttons
     btnY = height - 58;
@@ -1450,29 +1693,35 @@ function setupGrowingButtons() {
     btnWidth = (width - btnSpacing * 3) / 2;
 
     let harvestBtn = new Button(x, btnY, btnWidth, btnHeight, '✂️ HARVEST', () => {
-        if (selectedPlant && selectedPlant.stage === 'harvest') {
-            harvestPlant(selectedPlant);
-        } else if (!selectedPlant) {
+        if (!selectedPlant) {
             addNotification('❌ Select a plant first!', 'error');
-        } else {
+        } else if (selectedPlant.stage !== 'harvest') {
             addNotification('❌ Plant not ready!', 'error');
+        } else {
+            harvestPlant(selectedPlant);
         }
-    }, [139, 195, 74]);
-    harvestBtn.enabled = selectedPlant && selectedPlant.stage === 'harvest';
+    }, [124, 179, 66]); // Vibrant leaf green
+    harvestBtn.enabled = true;
+    if (!selectedPlant || selectedPlant.stage !== 'harvest') {
+        harvestBtn.color = [94, 139, 46]; // Dimmed leaf green
+    }
     buttons.push(harvestBtn);
     x += btnWidth + btnSpacing;
 
-    // Plant seed button
+    // Plant seed button - deep earthy indigo
     let plantBtn = new Button(x, btnY, btnWidth, btnHeight, '🌱 PLANT', () => {
-        if (player.inventory.seeds.length > 0 && plants.length < maxPlants) {
-            plantNewSeed();
-        } else if (plants.length >= maxPlants) {
+        if (plants.length >= maxPlants) {
             addNotification('❌ Maximum plants reached!', 'error');
-        } else {
+        } else if (player.inventory.seeds.length === 0) {
             addNotification('❌ No seeds available!', 'error');
+        } else {
+            plantNewSeed();
         }
-    }, [103, 58, 183]);
-    plantBtn.enabled = player.inventory.seeds.length > 0 && plants.length < maxPlants;
+    }, [81, 45, 168]); // Deep indigo
+    plantBtn.enabled = true;
+    if (player.inventory.seeds.length === 0 || plants.length >= maxPlants) {
+        plantBtn.color = [61, 35, 128]; // Dimmed indigo
+    }
     buttons.push(plantBtn);
 }
 
