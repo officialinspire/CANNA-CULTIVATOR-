@@ -1,5 +1,5 @@
 // === GAME STATE ===
-let gameState = 'titleScreen'; // titleScreen, strainSelect, locationSelect, growing, shop, harvest, hybridization
+let gameState = 'titleScreen'; // titleScreen, strainSelect, locationSelect, growing, shop, harvest, hybridization, paused, settings
 let player = {
     money: 500,
     inventory: {
@@ -18,6 +18,28 @@ let maxPlants = 4;
 let gameTime = 0;
 let dayNightCycle = 0;
 let timeSpeed = 0.3; // Slow down time significantly
+let gamePaused = false;
+let previousGameState = null;
+
+// === AUDIO SYSTEM ===
+let menuMusic, gameplayMusic, buttonSFX, notificationSFX;
+let audioSettings = {
+    musicVolume: 0.5,
+    sfxVolume: 0.7,
+    musicEnabled: true,
+    sfxEnabled: true
+};
+let audioLoaded = false;
+
+// === WEATHER SYSTEM ===
+let weather = {
+    current: 'clear', // clear, cloudy, rainy, frost
+    temperature: 70,
+    humidity: 50,
+    cloudCover: 0,
+    rainIntensity: 0,
+    frostWarning: false
+};
 
 // === STRAIN DATABASE ===
 const strainDatabase = {
@@ -674,6 +696,223 @@ class Button {
     }
 }
 
+// === AUDIO FUNCTIONS ===
+function preload() {
+    // Load audio files
+    try {
+        soundFormats('mp3');
+        menuMusic = loadSound('menu.mp3', () => console.log('Menu music loaded'), () => console.log('Menu music failed'));
+        gameplayMusic = loadSound('gameplay.mp3', () => console.log('Gameplay music loaded'), () => console.log('Gameplay music failed'));
+        audioLoaded = true;
+    } catch (e) {
+        console.log('Audio loading error:', e);
+        audioLoaded = false;
+    }
+}
+
+function playButtonSFX() {
+    if (audioSettings.sfxEnabled && audioLoaded) {
+        // Create beep sound programmatically using p5.sound
+        let osc = new p5.Oscillator('sine');
+        osc.amp(audioSettings.sfxVolume * 0.3);
+        osc.freq(800);
+        osc.start();
+        osc.stop(0.1);
+    }
+}
+
+function playNotificationSFX() {
+    if (audioSettings.sfxEnabled && audioLoaded) {
+        // Create notification beep sound
+        let osc = new p5.Oscillator('sine');
+        osc.amp(audioSettings.sfxVolume * 0.2);
+        osc.freq(600);
+        osc.start();
+        osc.stop(0.15);
+    }
+}
+
+function switchToMenuMusic() {
+    if (!audioSettings.musicEnabled || !audioLoaded) return;
+
+    if (gameplayMusic && gameplayMusic.isPlaying()) {
+        gameplayMusic.stop();
+    }
+    if (menuMusic && !menuMusic.isPlaying()) {
+        menuMusic.setVolume(audioSettings.musicVolume);
+        menuMusic.loop();
+    }
+}
+
+function switchToGameplayMusic() {
+    if (!audioSettings.musicEnabled || !audioLoaded) return;
+
+    if (menuMusic && menuMusic.isPlaying()) {
+        menuMusic.stop();
+    }
+    if (gameplayMusic && !gameplayMusic.isPlaying()) {
+        gameplayMusic.setVolume(audioSettings.musicVolume);
+        gameplayMusic.loop();
+    }
+}
+
+function stopAllMusic() {
+    if (menuMusic && menuMusic.isPlaying()) menuMusic.stop();
+    if (gameplayMusic && gameplayMusic.isPlaying()) gameplayMusic.stop();
+}
+
+function updateMusicVolume() {
+    if (menuMusic) menuMusic.setVolume(audioSettings.musicVolume);
+    if (gameplayMusic) gameplayMusic.setVolume(audioSettings.musicVolume);
+}
+
+// === WEATHER SYSTEM ===
+function updateWeather() {
+    if (growLocation !== 'outdoor') return;
+
+    // Update weather every game day
+    if (floor(gameTime) % 180 === 0 && gameTime > 0) {
+        // Random weather changes
+        let rand = random();
+        if (rand < 0.6) {
+            weather.current = 'clear';
+            weather.cloudCover = random(0, 0.3);
+            weather.rainIntensity = 0;
+        } else if (rand < 0.85) {
+            weather.current = 'cloudy';
+            weather.cloudCover = random(0.5, 0.9);
+            weather.rainIntensity = 0;
+        } else {
+            weather.current = 'rainy';
+            weather.cloudCover = random(0.8, 1);
+            weather.rainIntensity = random(0.3, 0.8);
+        }
+
+        // Check for frost - rare event, only in late flowering/harvest stage
+        for (let plant of plants) {
+            if ((plant.stage === 'flowering' || plant.stage === 'harvest') && random() < 0.05) {
+                weather.current = 'frost';
+                weather.frostWarning = true;
+                addNotification('⚠️ FROST WARNING! Protect your plants!', 'warning');
+
+                // Frost damage
+                setTimeout(() => {
+                    plant.health = max(20, plant.health - random(20, 40));
+                    addNotification(`❄️ Frost damaged ${plant.strain}!`, 'error');
+                }, 3000);
+            }
+        }
+    }
+
+    // Temperature and humidity variations
+    weather.temperature = 60 + sin(dayNightCycle) * 20 + random(-5, 5);
+    weather.humidity = 40 + random(0, 30);
+}
+
+// === SAVE/LOAD SYSTEM ===
+function saveGame() {
+    try {
+        let saveData = {
+            player: player,
+            plants: plants.map(p => ({
+                strain: p.strain,
+                location: p.location,
+                x: p.x,
+                y: p.y,
+                age: p.age,
+                stage: p.stage,
+                health: p.health,
+                height: p.height,
+                width: p.width,
+                gender: p.gender,
+                nutrients: p.nutrients,
+                water: p.water,
+                light: p.light,
+                pests: p.pests,
+                yield: p.yield,
+                potency: p.potency,
+                lastWatered: p.lastWatered,
+                lastFed: p.lastFed
+            })),
+            gameTime: gameTime,
+            dayNightCycle: dayNightCycle,
+            growLocation: growLocation,
+            selectedStrain: selectedStrain,
+            weather: weather,
+            audioSettings: audioSettings
+        };
+
+        localStorage.setItem('cannaCultivatorSave', JSON.stringify(saveData));
+        addNotification('💾 Game saved successfully!', 'success');
+        return true;
+    } catch (e) {
+        console.error('Save failed:', e);
+        addNotification('❌ Failed to save game!', 'error');
+        return false;
+    }
+}
+
+function loadGame() {
+    try {
+        let saveData = localStorage.getItem('cannaCultivatorSave');
+        if (!saveData) {
+            addNotification('❌ No saved game found!', 'error');
+            return false;
+        }
+
+        saveData = JSON.parse(saveData);
+
+        // Restore player data
+        player = saveData.player;
+        gameTime = saveData.gameTime;
+        dayNightCycle = saveData.dayNightCycle;
+        growLocation = saveData.growLocation;
+        selectedStrain = saveData.selectedStrain;
+        weather = saveData.weather;
+
+        // Restore audio settings
+        if (saveData.audioSettings) {
+            audioSettings = saveData.audioSettings;
+            updateMusicVolume();
+        }
+
+        // Restore plants
+        plants = [];
+        for (let pData of saveData.plants) {
+            let plant = new Plant(pData.strain, pData.location, pData.x, pData.y);
+            plant.age = pData.age;
+            plant.stage = pData.stage;
+            plant.health = pData.health;
+            plant.height = pData.height;
+            plant.width = pData.width;
+            plant.gender = pData.gender;
+            plant.nutrients = pData.nutrients;
+            plant.water = pData.water;
+            plant.light = pData.light;
+            plant.pests = pData.pests;
+            plant.yield = pData.yield;
+            plant.potency = pData.potency;
+            plant.lastWatered = pData.lastWatered;
+            plant.lastFed = pData.lastFed;
+            plant.generateLeaves();
+            plants.push(plant);
+        }
+
+        gameState = 'growing';
+        switchToGameplayMusic();
+        addNotification('📂 Game loaded successfully!', 'success');
+        return true;
+    } catch (e) {
+        console.error('Load failed:', e);
+        addNotification('❌ Failed to load game!', 'error');
+        return false;
+    }
+}
+
+function hasSavedGame() {
+    return localStorage.getItem('cannaCultivatorSave') !== null;
+}
+
 // === NOTIFICATION SYSTEM ===
 function addNotification(message, type = 'info') {
     notifications.push({
@@ -682,6 +921,7 @@ function addNotification(message, type = 'info') {
         time: gameTime,
         alpha: 255
     });
+    playNotificationSFX();
 }
 
 function displayNotifications() {
@@ -735,9 +975,17 @@ function setup() {
 
 function draw() {
     background(20, 40, 30);
-    
-    gameTime += timeSpeed;
-    dayNightCycle += 0.002; // Much slower day/night cycle
+
+    // Only update game time if not paused
+    if (!gamePaused) {
+        gameTime += timeSpeed;
+        dayNightCycle += 0.01; // Fixed and balanced day/night cycle - full cycle every ~628 frames
+
+        // Update weather system
+        if (growLocation === 'outdoor') {
+            updateWeather();
+        }
+    }
 
     // Route to different screens
     if (gameState === 'titleScreen') {
@@ -750,6 +998,10 @@ function draw() {
         drawGrowingScreen();
     } else if (gameState === 'shop') {
         drawShop();
+    } else if (gameState === 'paused') {
+        drawPauseMenu();
+    } else if (gameState === 'settings') {
+        drawSettingsMenu();
     } else if (gameState === 'harvest') {
         drawHarvestScreen();
     } else if (gameState === 'hybridization') {
@@ -767,8 +1019,11 @@ function draw() {
 
 // === TITLE SCREEN ===
 function drawTitleScreen() {
+    // Play menu music when on title screen
+    switchToMenuMusic();
+
     push();
-    
+
     // Animated background
     for (let i = 0; i < 20; i++) {
         let x = (i * 50 + gameTime * 2) % width;
@@ -780,7 +1035,7 @@ function drawTitleScreen() {
 
     // Title with glow effect
     textFont('Bangers');
-    
+
     // Glow layers
     fill(100, 255, 100, 50);
     textAlign(CENTER, CENTER);
@@ -790,7 +1045,7 @@ function drawTitleScreen() {
     fill(150, 255, 150, 100);
     textSize(min(width * 0.115, 58));
     text('🌿 CANNA-CULTIVATOR! 🌿', width / 2 + 2, height / 3 + 2);
-    
+
     // Main title
     fill(220, 255, 220);
     textSize(min(width * 0.115, 58));
@@ -803,22 +1058,22 @@ function drawTitleScreen() {
 
     // Animated plant with more detail
     push();
-    translate(width / 2, height / 2 + 80);
+    translate(width / 2, height / 2 + 60);
     let bounce = sin(gameTime * 0.08) * 8;
     translate(0, bounce);
-    
+
     // Pot
     fill(139, 90, 43);
     stroke(101, 67, 33);
     strokeWeight(2);
     ellipse(0, 15, 50, 20);
     rect(-25, 10, 50, 20, 5);
-    
+
     // Main stem
     stroke(100, 150, 100);
     strokeWeight(6);
     line(0, 10, 0, -50);
-    
+
     // Leaves
     noStroke();
     fill(120, 255, 120);
@@ -843,27 +1098,55 @@ function drawTitleScreen() {
 
     pop();
 
-    // Button
+    // Buttons
     buttons = [];
-    buttons.push(new Button(width / 2 - 120, height - 140, 240, 60, '🎮 START GAME', () => {
+    let btnWidth = 240;
+    let btnHeight = 50;
+    let btnSpacing = 15;
+    let startY = height - 220;
+
+    // New Game button
+    buttons.push(new Button(width / 2 - btnWidth / 2, startY, btnWidth, btnHeight, '🎮 NEW GAME', () => {
+        playButtonSFX();
         gameState = 'strainSelect';
-        addNotification('👋 Welcome to Grow Quest!', 'success');
+        addNotification('👋 Welcome to CANNA-CULTIVATOR!', 'success');
     }, [76, 175, 80]));
+
+    // Continue Game button (if save exists)
+    if (hasSavedGame()) {
+        buttons.push(new Button(width / 2 - btnWidth / 2, startY + btnHeight + btnSpacing, btnWidth, btnHeight, '📂 CONTINUE', () => {
+            playButtonSFX();
+            loadGame();
+        }, [100, 150, 220]));
+    }
+
+    // Settings button
+    let settingsY = hasSavedGame() ? startY + (btnHeight + btnSpacing) * 2 : startY + btnHeight + btnSpacing;
+    buttons.push(new Button(width / 2 - btnWidth / 2, settingsY, btnWidth, btnHeight, '⚙️ SETTINGS', () => {
+        playButtonSFX();
+        previousGameState = 'titleScreen';
+        gameState = 'settings';
+    }, [150, 100, 200]));
 }
 
 // === STRAIN SELECTION ===
 function drawStrainSelect() {
+    // Play menu music
+    switchToMenuMusic();
+
     push();
-    
+
     // Title with better font - perfectly centered
     textFont('Bangers');
     fill(220, 255, 220);
     textAlign(CENTER);
     textSize(32);
+    textStyle(NORMAL); // Ensure no italic
     text('Choose Your Starter Strain', width / 2, 32);
 
     textFont('Carter One');
     textSize(14);
+    textStyle(NORMAL); // Ensure no italic
     fill(180, 255, 180);
     text('Select your first cannabis seed (Like choosing your starter Pokemon!)', width / 2, 58);
 
@@ -910,11 +1193,13 @@ function drawStrainSelect() {
         noStroke();
         textAlign(CENTER);
         textSize(18);
+        textStyle(NORMAL); // Remove italics
         text(strain, x + cardWidth / 2, y + 26);
 
         // Stats with better formatting
         textFont('Permanent Marker');
         textSize(13);
+        textStyle(NORMAL); // Remove italics
         fill(200, 255, 200);
         textAlign(LEFT);
         let statY = y + 52;
@@ -984,6 +1269,7 @@ function drawStrainSelect() {
 }
 
 function selectStrain(strain) {
+    playButtonSFX();
     selectedStrain = strain;
     player.inventory.seeds.push({
         strain: strain,
@@ -996,12 +1282,16 @@ function selectStrain(strain) {
 
 // === LOCATION SELECTION ===
 function drawLocationSelect() {
+    // Play menu music
+    switchToMenuMusic();
+
     push();
-    
+
     textFont('Bangers');
     fill(220, 255, 220);
     textAlign(CENTER);
     textSize(34);
+    textStyle(NORMAL); // Remove italics
     text('Choose Growing Location', width / 2, 40);
 
     buttons = [];
@@ -1033,11 +1323,14 @@ function drawLocationSelect() {
     textFont('Carter One');
     fill(180, 180, 255);
     noStroke();
+    textAlign(CENTER); // Center alignment
     textSize(28);
+    textStyle(NORMAL); // Remove italics
     text('🏠 INDOOR', indoorX + cardWidth / 2, indoorY + 35);
 
     textFont('Permanent Marker');
     textSize(15);
+    textStyle(NORMAL); // Remove italics
     fill(200, 200, 255);
     textAlign(LEFT);
     let infoX = indoorX + 22;
@@ -1079,11 +1372,14 @@ function drawLocationSelect() {
     textFont('Carter One');
     fill(180, 255, 180);
     noStroke();
+    textAlign(CENTER); // Center alignment - FIX for outdoor title
     textSize(28);
+    textStyle(NORMAL); // Remove italics
     text('🌞 OUTDOOR', outdoorX + cardWidth / 2, outdoorY + 35);
 
     textFont('Permanent Marker');
     textSize(15);
+    textStyle(NORMAL); // Remove italics
     fill(200, 255, 200);
     textAlign(LEFT);
     let outX = outdoorX + 22;
@@ -1109,14 +1405,16 @@ function drawLocationSelect() {
 }
 
 function startGrowing(location) {
+    playButtonSFX();
     growLocation = location;
-    
+
     // Create first plant
     let plantX = width / 2;
     let plantY = height / 2 + 50;
     plants.push(new Plant(selectedStrain, location, plantX, plantY));
-    
+
     gameState = 'growing';
+    switchToGameplayMusic(); // Switch to gameplay music
     addNotification(`🌱 Started growing ${selectedStrain} ${location}!`, 'success');
 }
 
@@ -1629,6 +1927,17 @@ function drawControlPanel() {
 
 function setupGrowingButtons() {
     buttons = [];
+
+    // Pause button in top right corner
+    let pauseBtnSize = 45;
+    let pauseBtn = new Button(width - pauseBtnSize - 10, 10, pauseBtnSize, pauseBtnSize, '⏸', () => {
+        playButtonSFX();
+        previousGameState = 'growing';
+        gameState = 'paused';
+        gamePaused = true;
+    }, [150, 100, 200]);
+    buttons.push(pauseBtn);
+
     let btnY = height - 105;
     let btnHeight = 38;
     let btnSpacing = 8;
@@ -1641,6 +1950,7 @@ function setupGrowingButtons() {
 
     // Water button - earthy blue/cyan color
     let waterBtn = new Button(x, btnY, btnWidth, btnHeight, '💧', () => {
+        playButtonSFX();
         if (!selectedPlant) {
             addNotification('❌ Select a plant first!', 'error');
         } else if (player.inventory.water < 10) {
@@ -1659,6 +1969,7 @@ function setupGrowingButtons() {
 
     // Nitrogen button - natural forest green
     let nBtn = new Button(x, btnY, btnWidth, btnHeight, '🌱 N', () => {
+        playButtonSFX();
         if (!selectedPlant) {
             addNotification('❌ Select a plant first!', 'error');
         } else if (player.inventory.nutrients.nitrogen < 5) {
@@ -1677,6 +1988,7 @@ function setupGrowingButtons() {
 
     // Phosphorus button - earthy purple/amethyst
     let pBtn = new Button(x, btnY, btnWidth, btnHeight, '🌸 P', () => {
+        playButtonSFX();
         if (!selectedPlant) {
             addNotification('❌ Select a plant first!', 'error');
         } else if (player.inventory.nutrients.phosphorus < 5) {
@@ -1695,6 +2007,7 @@ function setupGrowingButtons() {
 
     // Potassium button - natural amber/honey
     let kBtn = new Button(x, btnY, btnWidth, btnHeight, '🍌 K', () => {
+        playButtonSFX();
         if (!selectedPlant) {
             addNotification('❌ Select a plant first!', 'error');
         } else if (player.inventory.nutrients.potassium < 5) {
@@ -1713,6 +2026,7 @@ function setupGrowingButtons() {
 
     // Pesticide button - earthy terracotta red
     let pestBtn = new Button(x, btnY, btnWidth, btnHeight, '🔫', () => {
+        playButtonSFX();
         if (!selectedPlant) {
             addNotification('❌ Select a plant first!', 'error');
         } else if (player.inventory.pesticide < 1) {
@@ -1731,6 +2045,7 @@ function setupGrowingButtons() {
 
     // Shop button - golden/honey
     buttons.push(new Button(x, btnY, btnWidth, btnHeight, '🏪', () => {
+        playButtonSFX();
         gameState = 'shop';
     }, [241, 196, 15])); // Golden yellow
 
@@ -1740,6 +2055,7 @@ function setupGrowingButtons() {
     btnWidth = (width - btnSpacing * 3) / 2;
 
     let harvestBtn = new Button(x, btnY, btnWidth, btnHeight, '✂️ HARVEST', () => {
+        playButtonSFX();
         if (!selectedPlant) {
             addNotification('❌ Select a plant first!', 'error');
         } else if (selectedPlant.stage !== 'harvest') {
@@ -1757,6 +2073,7 @@ function setupGrowingButtons() {
 
     // Plant seed button - deep earthy indigo
     let plantBtn = new Button(x, btnY, btnWidth, btnHeight, '🌱 PLANT', () => {
+        playButtonSFX();
         if (plants.length >= maxPlants) {
             addNotification('❌ Maximum plants reached!', 'error');
         } else if (player.inventory.seeds.length === 0) {
@@ -2073,6 +2390,221 @@ function sellWeed(index) {
     player.money += sellPrice;
     player.harvestedWeed.splice(index, 1);
     addNotification(`💰 Sold for $${sellPrice}!`, 'success');
+}
+
+// === PAUSE MENU ===
+function drawPauseMenu() {
+    // Draw the game screen in background (frozen)
+    drawGrowingScreen();
+
+    // Dark overlay
+    fill(0, 0, 0, 180);
+    noStroke();
+    rect(0, 0, width, height);
+
+    // Pause menu panel
+    let panelW = min(400, width * 0.9);
+    let panelH = 400;
+    let panelX = (width - panelW) / 2;
+    let panelY = (height - panelH) / 2;
+
+    // Panel shadow
+    fill(0, 0, 0, 100);
+    rect(panelX + 5, panelY + 5, panelW, panelH, 15);
+
+    // Panel background
+    fill(25, 40, 30);
+    stroke(100, 255, 100);
+    strokeWeight(3);
+    rect(panelX, panelY, panelW, panelH, 15);
+
+    // Title
+    textFont('Bangers');
+    fill(220, 255, 220);
+    textAlign(CENTER);
+    textSize(36);
+    textStyle(NORMAL);
+    text('⏸ PAUSED', width / 2, panelY + 50);
+
+    // Buttons
+    buttons = [];
+    let btnW = panelW - 80;
+    let btnH = 50;
+    let btnX = panelX + 40;
+    let btnY = panelY + 100;
+    let btnSpacing = 65;
+
+    // Resume button
+    buttons.push(new Button(btnX, btnY, btnW, btnH, '▶️ RESUME', () => {
+        playButtonSFX();
+        gameState = previousGameState;
+        gamePaused = false;
+    }, [76, 175, 80]));
+
+    // Save button
+    buttons.push(new Button(btnX, btnY + btnSpacing, btnW, btnH, '💾 SAVE GAME', () => {
+        playButtonSFX();
+        saveGame();
+    }, [100, 150, 220]));
+
+    // Settings button
+    buttons.push(new Button(btnX, btnY + btnSpacing * 2, btnW, btnH, '⚙️ SETTINGS', () => {
+        playButtonSFX();
+        previousGameState = 'paused';
+        gameState = 'settings';
+    }, [150, 100, 200]));
+
+    // Main Menu button
+    buttons.push(new Button(btnX, btnY + btnSpacing * 3, btnW, btnH, '🏠 MAIN MENU', () => {
+        playButtonSFX();
+        if (confirm('Return to main menu? Make sure to save first!')) {
+            gameState = 'titleScreen';
+            gamePaused = false;
+            switchToMenuMusic();
+        }
+    }, [200, 100, 100]));
+}
+
+// === SETTINGS MENU ===
+function drawSettingsMenu() {
+    // Dark background
+    background(20, 30, 25);
+
+    // Settings panel
+    let panelW = min(500, width * 0.95);
+    let panelH = min(500, height * 0.9);
+    let panelX = (width - panelW) / 2;
+    let panelY = (height - panelH) / 2;
+
+    // Panel shadow
+    fill(0, 0, 0, 100);
+    noStroke();
+    rect(panelX + 5, panelY + 5, panelW, panelH, 15);
+
+    // Panel background
+    fill(25, 40, 30);
+    stroke(100, 255, 100);
+    strokeWeight(3);
+    rect(panelX, panelY, panelW, panelH, 15);
+
+    // Title
+    textFont('Bangers');
+    fill(220, 255, 220);
+    textAlign(CENTER);
+    textSize(36);
+    textStyle(NORMAL);
+    text('⚙️ SETTINGS', width / 2, panelY + 50);
+
+    // Settings content
+    textFont('Carter One');
+    textSize(18);
+    fill(180, 255, 180);
+    textAlign(LEFT);
+
+    let contentX = panelX + 30;
+    let contentY = panelY + 100;
+    let lineHeight = 80;
+
+    // Music Volume
+    text('🎵 Music Volume', contentX, contentY);
+    text(`${floor(audioSettings.musicVolume * 100)}%`, panelX + panelW - 80, contentY);
+
+    // Music volume slider (simulated with buttons)
+    let sliderY = contentY + 25;
+    let sliderW = panelW - 100;
+    let sliderX = panelX + 50;
+
+    fill(50, 50, 50);
+    noStroke();
+    rect(sliderX, sliderY, sliderW, 15, 5);
+
+    fill(100, 255, 100);
+    rect(sliderX, sliderY, sliderW * audioSettings.musicVolume, 15, 5);
+
+    // SFX Volume
+    contentY += lineHeight;
+    fill(180, 255, 180);
+    text('🔊 SFX Volume', contentX, contentY);
+    text(`${floor(audioSettings.sfxVolume * 100)}%`, panelX + panelW - 80, contentY);
+
+    sliderY = contentY + 25;
+    fill(50, 50, 50);
+    noStroke();
+    rect(sliderX, sliderY, sliderW, 15, 5);
+
+    fill(100, 255, 100);
+    rect(sliderX, sliderY, sliderW * audioSettings.sfxVolume, 15, 5);
+
+    // Music Toggle
+    contentY += lineHeight;
+    fill(180, 255, 180);
+    text('Music:', contentX, contentY);
+
+    // SFX Toggle
+    contentY += lineHeight;
+    fill(180, 255, 180);
+    text('Sound FX:', contentX, contentY);
+
+    // Buttons
+    buttons = [];
+    let btnW = 100;
+    let btnH = 40;
+
+    // Music volume buttons
+    contentY = panelY + 100 + 25;
+    buttons.push(new Button(sliderX, contentY - 5, 60, 30, '-', () => {
+        playButtonSFX();
+        audioSettings.musicVolume = max(0, audioSettings.musicVolume - 0.1);
+        updateMusicVolume();
+    }, [180, 100, 100]));
+
+    buttons.push(new Button(sliderX + sliderW - 60, contentY - 5, 60, 30, '+', () => {
+        playButtonSFX();
+        audioSettings.musicVolume = min(1, audioSettings.musicVolume + 0.1);
+        updateMusicVolume();
+    }, [100, 180, 100]));
+
+    // SFX volume buttons
+    contentY += lineHeight;
+    buttons.push(new Button(sliderX, contentY - 5, 60, 30, '-', () => {
+        playButtonSFX();
+        audioSettings.sfxVolume = max(0, audioSettings.sfxVolume - 0.1);
+    }, [180, 100, 100]));
+
+    buttons.push(new Button(sliderX + sliderW - 60, contentY - 5, 60, 30, '+', () => {
+        playButtonSFX();
+        audioSettings.sfxVolume = min(1, audioSettings.sfxVolume + 0.1);
+    }, [100, 180, 100]));
+
+    // Music toggle button
+    contentY += lineHeight;
+    buttons.push(new Button(panelX + panelW - 160, contentY - 20, btnW, btnH, audioSettings.musicEnabled ? 'ON' : 'OFF', () => {
+        playButtonSFX();
+        audioSettings.musicEnabled = !audioSettings.musicEnabled;
+        if (audioSettings.musicEnabled) {
+            if (gameState === 'growing') switchToGameplayMusic();
+            else switchToMenuMusic();
+        } else {
+            stopAllMusic();
+        }
+    }, audioSettings.musicEnabled ? [76, 175, 80] : [180, 100, 100]));
+
+    // SFX toggle button
+    contentY += lineHeight;
+    buttons.push(new Button(panelX + panelW - 160, contentY - 20, btnW, btnH, audioSettings.sfxEnabled ? 'ON' : 'OFF', () => {
+        playButtonSFX();
+        audioSettings.sfxEnabled = !audioSettings.sfxEnabled;
+    }, audioSettings.sfxEnabled ? [76, 175, 80] : [180, 100, 100]));
+
+    // Back button
+    buttons.push(new Button(panelX + 40, panelY + panelH - 70, panelW - 80, 50, '⬅️ BACK', () => {
+        playButtonSFX();
+        if (previousGameState === 'paused') {
+            gameState = 'paused';
+        } else {
+            gameState = previousGameState || 'titleScreen';
+        }
+    }, [100, 100, 150]));
 }
 
 // === MOUSE/TOUCH HANDLING ===
