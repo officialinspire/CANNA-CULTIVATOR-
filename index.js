@@ -2063,24 +2063,24 @@ function drawLocationSelect() {
     textFont('Bangers');
     fill(220, 255, 220);
     textAlign(CENTER);
-    textSize(isMobile ? min(width * 0.085, 34) : 34);
+    textSize(isMobile ? min(width * 0.07, 28) : 34);
     textStyle(NORMAL); // Remove italics
-    text('Choose Growing Location', width / 2, 40);
+    text('Choose Growing Location', width / 2, isMobile ? 30 : 40);
 
     buttons = [];
 
     // Cards with responsive sizing for mobile and desktop
-    let cardWidth = isMobile ? min(width * 0.85, 340) : 340;
-    let cardHeight = isMobile ? min(height * 0.45, 280) : 330; // Reduced height for mobile
-    let spacing = isMobile ? 15 : 30;
+    let cardWidth = isMobile ? min(width * 0.88, 300) : 340;
+    let cardHeight = isMobile ? min(height * 0.36, 240) : 330; // Reduced height for mobile
+    let spacing = isMobile ? 12 : 30;
 
-    // Stack vertically on narrow mobile screens
-    let stackVertical = isMobile && width < 600;
+    // Always stack vertically on mobile for better fit
+    let stackVertical = isMobile;
     let totalWidth = stackVertical ? cardWidth : cardWidth * 2 + spacing;
     let totalHeight = stackVertical ? cardHeight * 2 + spacing : cardHeight;
 
     let startX = (width - totalWidth) / 2;
-    let titleHeight = 60; // Space for title
+    let titleHeight = isMobile ? 45 : 60; // Space for title
     let cardY = stackVertical ? max(titleHeight + 10, (height - totalHeight) / 2) : (height - cardHeight) / 2 + titleHeight / 2; // Center vertically considering title
 
     // Indoor card
@@ -2102,18 +2102,18 @@ function drawLocationSelect() {
     fill(180, 180, 255);
     noStroke();
     textAlign(CENTER); // Center alignment
-    textSize(isMobile ? min(cardWidth * 0.082, 28) : 28);
+    textSize(isMobile ? min(cardWidth * 0.073, 22) : 28);
     textStyle(NORMAL); // Remove italics
-    text('🏠 INDOOR', indoorX + cardWidth / 2, indoorY + 35);
+    text('🏠 INDOOR', indoorX + cardWidth / 2, indoorY + (isMobile ? 28 : 35));
 
     textFont('Carter One');
-    textSize(isMobile ? min(cardWidth * 0.038, 13) : 15);
+    textSize(isMobile ? min(cardWidth * 0.04, 12) : 15);
     textStyle(NORMAL); // Remove italics
     fill(200, 200, 255);
     textAlign(LEFT);
-    let infoX = indoorX + 18;
-    let lineHeight = isMobile ? min(cardWidth * 0.068, 23) : 28;
-    let startInfo = indoorY + 70;
+    let infoX = indoorX + (isMobile ? 12 : 18);
+    let lineHeight = isMobile ? min(cardWidth * 0.058, 18) : 28;
+    let startInfo = indoorY + (isMobile ? 50 : 70);
     text('✓ Controlled environment', infoX, startInfo);
     text('✓ No weather effects', infoX, startInfo + lineHeight);
     text('✓ Consistent lighting', infoX, startInfo + lineHeight * 2);
@@ -2123,11 +2123,11 @@ function drawLocationSelect() {
     text('✗ Higher electricity cost', infoX, startInfo + lineHeight * 5);
 
     buttons.push(new Button(
-        indoorX + 30, 
-        indoorY + cardHeight - 55, 
-        cardWidth - 60, 
-        45, 
-        'GROW INDOOR', 
+        indoorX + (isMobile ? 20 : 30),
+        indoorY + cardHeight - (isMobile ? 48 : 55),
+        cardWidth - (isMobile ? 40 : 60),
+        isMobile ? 38 : 45,
+        'GROW INDOOR',
         () => startGrowing('indoor'),
         [100, 100, 220]
     ));
@@ -2151,30 +2151,31 @@ function drawLocationSelect() {
     fill(180, 255, 180);
     noStroke();
     textAlign(CENTER); // Center alignment - FIX for outdoor title
-    textSize(isMobile ? min(cardWidth * 0.082, 28) : 28);
+    textSize(isMobile ? min(cardWidth * 0.073, 22) : 28);
     textStyle(NORMAL); // Remove italics
-    text('🌞 OUTDOOR', outdoorX + cardWidth / 2, outdoorY + 35);
+    text('🌞 OUTDOOR', outdoorX + cardWidth / 2, outdoorY + (isMobile ? 28 : 35));
 
     textFont('Carter One');
-    textSize(isMobile ? min(cardWidth * 0.038, 13) : 15);
+    textSize(isMobile ? min(cardWidth * 0.04, 12) : 15);
     textStyle(NORMAL); // Remove italics
     fill(200, 255, 200);
     textAlign(LEFT);
-    let outX = outdoorX + 18;
-    text('✓ Natural sunlight (free)', outX, startInfo);
-    text('✓ Larger plants possible', outX, startInfo + lineHeight);
-    text('✓ No electricity needed', outX, startInfo + lineHeight * 2);
-    text('✓ Authentic experience', outX, startInfo + lineHeight * 3);
+    let outX = outdoorX + (isMobile ? 12 : 18);
+    let outStartInfo = outdoorY + (isMobile ? 50 : 70);
+    text('✓ Natural sunlight (free)', outX, outStartInfo);
+    text('✓ Larger plants possible', outX, outStartInfo + lineHeight);
+    text('✓ No electricity needed', outX, outStartInfo + lineHeight * 2);
+    text('✓ Authentic experience', outX, outStartInfo + lineHeight * 3);
     fill(255, 200, 150);
-    text('✗ Weather dependent', outX, startInfo + lineHeight * 4);
-    text('✗ More pest problems', outX, startInfo + lineHeight * 5);
+    text('✗ Weather dependent', outX, outStartInfo + lineHeight * 4);
+    text('✗ More pest problems', outX, outStartInfo + lineHeight * 5);
 
     buttons.push(new Button(
-        outdoorX + 30, 
-        outdoorY + cardHeight - 55, 
-        cardWidth - 60, 
-        45, 
-        'GROW OUTDOOR', 
+        outdoorX + (isMobile ? 20 : 30),
+        outdoorY + cardHeight - (isMobile ? 48 : 55),
+        cardWidth - (isMobile ? 40 : 60),
+        isMobile ? 38 : 45,
+        'GROW OUTDOOR',
         () => startGrowing('outdoor'),
         [76, 185, 80]
     ));
@@ -3350,46 +3351,52 @@ function drawShop() {
     }
 
     // Sell weed section
+    let sellSectionHeight = 0;
     if (player.harvestedWeed.length > 0) {
         let sellY = startY + Math.ceil(items.length / cols) * (cardH + (isMobile ? 10 : 15)) + (isMobile ? 15 : 20);
-        
+
         fill(255, 215, 0);
         textAlign(CENTER, TOP);
-        textSize(24);
+        textSize(isMobile ? 18 : 24);
         textStyle(BOLD);
+        noStroke();
         text('💰 SELL HARVESTED WEED', width / 2, sellY);
 
-        let sellStartY = sellY + 40;
+        let sellStartY = sellY + (isMobile ? 35 : 40);
+        let sellItemHeight = isMobile ? 48 : 50;
         for (let i = 0; i < player.harvestedWeed.length; i++) {
             let weed = player.harvestedWeed[i];
-            let y = sellStartY + i * 50;
+            let y = sellStartY + i * sellItemHeight;
 
             fill(30, 50, 30);
             stroke(139, 195, 74);
             strokeWeight(2);
-            rect(20, y, width - 40, 45, 8);
+            rect(isMobile ? 10 : 20, y, width - (isMobile ? 20 : 40), isMobile ? 42 : 45, 8);
 
             fill(200, 255, 200);
             noStroke();
             textAlign(LEFT, CENTER);
-            textSize(14);
-            text(`🌿 ${weed.strain} - ${weed.amount}g (${weed.quality}% quality)`, 30, y + 22);
+            textSize(isMobile ? 11 : 14);
+            textStyle(NORMAL);
+            text(`🌿 ${weed.strain} - ${weed.amount}g (${weed.quality}% quality)`, isMobile ? 15 : 30, y + (isMobile ? 21 : 22));
 
             let sellPrice = weed.amount * weed.price;
+            let sellBtnW = isMobile ? 100 : 130;
             buttons.push(new Button(
-                width - 150, 
-                y + 8, 
-                130, 
-                30, 
-                `SELL $${sellPrice}`, 
+                width - (isMobile ? 110 : 150),
+                y + (isMobile ? 6 : 8),
+                sellBtnW,
+                isMobile ? 28 : 30,
+                `SELL $${sellPrice}`,
                 () => sellWeed(i),
                 [139, 195, 74]
             ));
         }
+        sellSectionHeight = sellStartY + player.harvestedWeed.length * sellItemHeight - sellY + 15;
     }
 
-    // Back button - positioned to avoid overlap
-    let backBtnY = isMobile ? height - 48 : height - 60;
+    // Back button - positioned to avoid overlap with dynamic content
+    let backBtnY = isMobile ? max(height - 48, startY + Math.ceil(items.length / cols) * (cardH + 10) + sellSectionHeight + 20) : height - 60;
     let backBtnW = isMobile ? min(180, width * 0.8) : 200;
     let backBtnH = isMobile ? 42 : 45;
     buttons.push(new Button(
@@ -3461,12 +3468,13 @@ function drawPauseMenu() {
 
     // Pause menu panel
     let panelW = min(400, width * 0.9);
-    let panelH = isMobile ? min(500, height * 0.85) : 500;
+    let panelH = isMobile ? min(480, height * 0.8) : 500;
     let panelX = (width - panelW) / 2;
     let panelY = (height - panelH) / 2;
 
     // Panel shadow
     fill(0, 0, 0, 100);
+    noStroke();
     rect(panelX + 5, panelY + 5, panelW, panelH, 15);
 
     // Panel background
@@ -3475,21 +3483,22 @@ function drawPauseMenu() {
     strokeWeight(3);
     rect(panelX, panelY, panelW, panelH, 15);
 
-    // Title - with better spacing
+    // Title - with better spacing and margin
     textFont('Bangers');
     fill(220, 255, 220);
     textAlign(CENTER);
-    textSize(isMobile ? 32 : 36);
+    textSize(isMobile ? 28 : 36);
     textStyle(NORMAL);
-    text('⏸ PAUSED', width / 2, panelY + (isMobile ? 45 : 50));
+    noStroke();
+    text('⏸ PAUSED', width / 2, panelY + (isMobile ? 40 : 50));
 
     // Buttons - increased spacing from title
     buttons = [];
-    let btnW = panelW - 80;
-    let btnH = isMobile ? 44 : 48;
-    let btnX = panelX + 40;
-    let btnY = panelY + (isMobile ? 100 : 110); // Increased from 90 to 100-110
-    let btnSpacing = isMobile ? 56 : 60;
+    let btnW = panelW - (isMobile ? 60 : 80);
+    let btnH = isMobile ? 40 : 48;
+    let btnX = panelX + (isMobile ? 30 : 40);
+    let btnY = panelY + (isMobile ? 80 : 110); // More spacing from title on mobile
+    let btnSpacing = isMobile ? 50 : 60;
 
     // Resume button
     buttons.push(new Button(btnX, btnY, btnW, btnH, '▶️ RESUME', () => {
@@ -3573,6 +3582,7 @@ function drawSettingsMenu() {
     textSize(18);
     textStyle(NORMAL); // Remove any style variations
     noStroke(); // Ensure no stroke/outline
+    strokeWeight(0); // Explicitly set stroke weight to 0
     fill(180, 255, 180);
     textAlign(LEFT);
 
@@ -3580,7 +3590,9 @@ function drawSettingsMenu() {
     let contentY = panelY + 100;
     let lineHeight = 80;
 
-    // Music Volume
+    // Music Volume - ensure consistent styling
+    noStroke();
+    fill(180, 255, 180);
     text('🎵 Music Volume', contentX, contentY);
     text(`${floor(audioSettings.musicVolume * 100)}%`, panelX + panelW - 80, contentY);
 
@@ -3598,6 +3610,7 @@ function drawSettingsMenu() {
 
     // SFX Volume
     contentY += lineHeight;
+    noStroke();
     fill(180, 255, 180);
     text('🔊 SFX Volume', contentX, contentY);
     text(`${floor(audioSettings.sfxVolume * 100)}%`, panelX + panelW - 80, contentY);
@@ -3608,15 +3621,18 @@ function drawSettingsMenu() {
     rect(sliderX, sliderY, sliderW, 15, 5);
 
     fill(100, 255, 100);
+    noStroke();
     rect(sliderX, sliderY, sliderW * audioSettings.sfxVolume, 15, 5);
 
     // Music Toggle
     contentY += lineHeight;
+    noStroke();
     fill(180, 255, 180);
     text('Music:', contentX, contentY);
 
     // SFX Toggle
     contentY += lineHeight;
+    noStroke();
     fill(180, 255, 180);
     text('Sound FX:', contentX, contentY);
 
@@ -3707,14 +3723,14 @@ function drawStrainListMenu() {
     buttons = [];
 
     // Strain grid - mobile responsive
-    let startY = isMobile ? 75 : 110;
-    let cardW = isMobile ? min(105, (width - 30) / 3) : min(180, (width - 60) / 4);
-    let cardH = isMobile ? min(170, height * 0.28) : 240;
+    let startY = isMobile ? 70 : 110;
+    let cardW = isMobile ? min(100, (width - 25) / 3) : min(180, (width - 60) / 4);
+    let cardH = isMobile ? min(155, height * 0.24) : 240;
     let cols = isMobile ? 3 : floor((width - 40) / (cardW + 10));
-    let spacing = isMobile ? 5 : 10;
+    let spacing = isMobile ? 4 : 10;
 
-    // More strains per page on mobile due to smaller cards
-    let rowsPerPage = isMobile ? 4 : 3;
+    // Adjust strains per page based on screen size
+    let rowsPerPage = isMobile ? 3 : 3;
     let strainsPerPage = cols * rowsPerPage;
     let totalPages = ceil(totalCount / strainsPerPage);
     let startIdx = strainListPage * strainsPerPage;
@@ -3744,35 +3760,35 @@ function drawStrainListMenu() {
         // Strain name - wrap for mobile
         fill(255);
         textAlign(CENTER);
-        textSize(isMobile ? 9 : 12);
+        textSize(isMobile ? 8 : 12);
         let displayName = unlocked ? strainName : '???';
-        if (isMobile && displayName.length > 12) {
+        if (isMobile && displayName.length > 11) {
             let words = displayName.split(' ');
             if (words.length > 1) {
-                text(words[0], x + cardW / 2, y + 14);
-                text(words.slice(1).join(' '), x + cardW / 2, y + 24);
+                text(words[0], x + cardW / 2, y + 12);
+                text(words.slice(1).join(' '), x + cardW / 2, y + 21);
             } else {
-                text(displayName, x + cardW / 2, y + 18);
+                text(displayName, x + cardW / 2, y + 16);
             }
         } else {
-            text(displayName, x + cardW / 2, y + 18);
+            text(displayName, x + cardW / 2, y + 16);
         }
 
         if (unlocked) {
             // Color swatch
             fill(strain.color[0], strain.color[1], strain.color[2]);
             noStroke();
-            let swatchSize = isMobile ? 28 : 40;
-            let swatchY = isMobile ? y + 48 : y + 60;
+            let swatchSize = isMobile ? 24 : 40;
+            let swatchY = isMobile ? y + 40 : y + 60;
             ellipse(x + cardW / 2, swatchY, swatchSize, swatchSize);
 
             // Stats
             fill(200);
             textAlign(LEFT);
-            textSize(isMobile ? 7 : 10);
-            let infoY = isMobile ? y + 70 : y + 95;
-            let infoGap = isMobile ? 11 : 16;
-            let infoX = x + (isMobile ? 6 : 10);
+            textSize(isMobile ? 6.5 : 10);
+            let infoY = isMobile ? y + 58 : y + 95;
+            let infoGap = isMobile ? 10 : 16;
+            let infoX = x + (isMobile ? 4 : 10);
             text(`Potency: ${strain.potency}%`, infoX, infoY);
             text(`Rarity: ${strain.rarity}`, infoX, infoY + infoGap);
             text(`Diff: ${strain.difficulty}`, infoX, infoY + infoGap * 2);
@@ -3783,28 +3799,28 @@ function drawStrainListMenu() {
                           strain.leafShape === 'narrow' ? '🌿' : '🌱';
             fill(255);
             textAlign(CENTER);
-            textSize(isMobile ? 16 : 20);
-            text(leafIcon, x + cardW / 2, infoY + infoGap * 4 + 5);
+            textSize(isMobile ? 14 : 20);
+            text(leafIcon, x + cardW / 2, infoY + infoGap * 4 + 4);
         } else {
             // Locked icon
             fill(100);
             textAlign(CENTER);
-            textSize(isMobile ? 28 : 40);
-            text('🔒', x + cardW / 2, isMobile ? y + 55 : y + 70);
+            textSize(isMobile ? 24 : 40);
+            text('🔒', x + cardW / 2, isMobile ? y + 45 : y + 70);
 
             // Hint - more compact for mobile
             fill(180, 180, 200);
-            textSize(isMobile ? 7 : 9);
+            textSize(isMobile ? 6.5 : 9);
             textAlign(CENTER);
             let hintText = strain.hint || 'Unlock by breeding';
             // Wrap text
             let words = hintText.split(' ');
             let line = '';
-            let lineY = isMobile ? y + 90 : y + 120;
-            let lineGap = isMobile ? 9 : 12;
+            let lineY = isMobile ? y + 70 : y + 120;
+            let lineGap = isMobile ? 8 : 12;
             for (let word of words) {
                 let testLine = line + word + ' ';
-                if (textWidth(testLine) > cardW - (isMobile ? 8 : 20) && line.length > 0) {
+                if (textWidth(testLine) > cardW - (isMobile ? 6 : 20) && line.length > 0) {
                     text(line, x + cardW / 2, lineY);
                     line = word + ' ';
                     lineY += lineGap;
@@ -3906,12 +3922,12 @@ function drawHybridizationScreen() {
     }
 
     // Display plant selection - mobile responsive
-    let cardW = isMobile ? min(width * 0.42, 140) : min(220, (width - 60) / 3);
-    let cardH = isMobile ? min(200, height * 0.32) : 280;
-    let spacing = isMobile ? 8 : 20;
+    let cardW = isMobile ? min(width * 0.44, 150) : min(220, (width - 60) / 3);
+    let cardH = isMobile ? min(185, height * 0.28) : 280;
+    let spacing = isMobile ? 6 : 20;
     let cardsPerRow = isMobile ? 2 : 3;
     let startX = (width - (min(cardsPerRow, breedablePlants.length) * cardW + (min(cardsPerRow, breedablePlants.length) - 1) * spacing)) / 2;
-    let y = isMobile ? 75 : 110;
+    let y = isMobile ? 70 : 110;
 
     for (let i = 0; i < min(breedablePlants.length, 6); i++) {
         let plant = breedablePlants[i];
@@ -3938,22 +3954,23 @@ function drawHybridizationScreen() {
         // Plant preview
         fill(plant.baseColor[0], plant.baseColor[1], plant.baseColor[2]);
         noStroke();
-        let previewSize = isMobile ? 35 : 50;
-        let previewY = isMobile ? currentY + 40 : currentY + 60;
+        let previewSize = isMobile ? 32 : 50;
+        let previewY = isMobile ? currentY + 35 : currentY + 60;
         ellipse(x + cardW / 2, previewY, previewSize, previewSize);
 
         // Info - responsive text
         fill(255);
+        noStroke();
         textAlign(CENTER);
-        textSize(isMobile ? 11 : 14);
-        let nameY = isMobile ? currentY + 70 : currentY + 105;
+        textSize(isMobile ? 10 : 14);
+        let nameY = isMobile ? currentY + 60 : currentY + 105;
         // Wrap long strain names on mobile
         if (isMobile && plant.strain.length > 12) {
             let words = plant.strain.split(' ');
             if (words.length > 1) {
                 text(words[0], x + cardW / 2, nameY);
-                text(words.slice(1).join(' '), x + cardW / 2, nameY + 12);
-                nameY += 12;
+                text(words.slice(1).join(' '), x + cardW / 2, nameY + 11);
+                nameY += 11;
             } else {
                 text(plant.strain, x + cardW / 2, nameY);
             }
@@ -3962,27 +3979,29 @@ function drawHybridizationScreen() {
         }
 
         fill(200);
-        textSize(isMobile ? 9 : 11);
-        let infoGap = isMobile ? 14 : 20;
-        text(`${plant.gender === 'female' ? '♀' : '♂'} ${plant.gender}`, x + cardW / 2, nameY + (isMobile ? 16 : 20));
-        text(`Health: ${floor(plant.health)}%`, x + cardW / 2, nameY + (isMobile ? 30 : 40));
-        text(`Potency: ${floor(plant.potency)}%`, x + cardW / 2, nameY + (isMobile ? 44 : 60));
+        textSize(isMobile ? 8 : 11);
+        let infoGap = isMobile ? 12 : 20;
+        text(`${plant.gender === 'female' ? '♀' : '♂'} ${plant.gender}`, x + cardW / 2, nameY + (isMobile ? 14 : 20));
+        text(`Health: ${floor(plant.health)}%`, x + cardW / 2, nameY + (isMobile ? 26 : 40));
+        text(`Potency: ${floor(plant.potency)}%`, x + cardW / 2, nameY + (isMobile ? 38 : 60));
 
         // Selection indicator
         if (isParent1) {
             fill(100, 255, 100);
-            textSize(isMobile ? 10 : 12);
-            text('PARENT 1 ✓', x + cardW / 2, nameY + (isMobile ? 60 : 85));
+            noStroke();
+            textSize(isMobile ? 9 : 12);
+            text('PARENT 1 ✓', x + cardW / 2, nameY + (isMobile ? 52 : 85));
         } else if (isParent2) {
             fill(255, 200, 100);
-            textSize(isMobile ? 10 : 12);
-            text('PARENT 2 ✓', x + cardW / 2, nameY + (isMobile ? 60 : 85));
+            noStroke();
+            textSize(isMobile ? 9 : 12);
+            text('PARENT 2 ✓', x + cardW / 2, nameY + (isMobile ? 52 : 85));
         }
 
         // Select button
-        let btnH = isMobile ? 30 : 35;
-        let btnW = isMobile ? cardW - 16 : cardW - 40;
-        let btnY = currentY + cardH - (isMobile ? 36 : 50);
+        let btnH = isMobile ? 28 : 35;
+        let btnW = isMobile ? cardW - 12 : cardW - 40;
+        let btnY = currentY + cardH - (isMobile ? 33 : 50);
         buttons.push(new Button(x + (cardW - btnW) / 2, btnY, btnW, btnH,
             isSelected ? 'DESELECT' : 'SELECT', () => {
             playButtonSFX();
@@ -4002,21 +4021,23 @@ function drawHybridizationScreen() {
 
     // Hybridize button
     if (selectedParentPlant1 && selectedParentPlant2) {
-        let hybridY = isMobile ? height - 110 : height - 140;
+        let hybridY = isMobile ? height - 105 : height - 140;
 
         // Show cross prediction - responsive text
         fill(255, 255, 100);
-        textSize(isMobile ? 12 : 16);
+        noStroke();
+        textAlign(CENTER);
+        textSize(isMobile ? 11 : 16);
         let crossText = `${selectedParentPlant1.strain} × ${selectedParentPlant2.strain}`;
-        if (isMobile && crossText.length > 30) {
-            text(`${selectedParentPlant1.strain} ×`, width / 2, hybridY - 28);
+        if (isMobile && crossText.length > 28) {
+            text(`${selectedParentPlant1.strain} ×`, width / 2, hybridY - 26);
             text(selectedParentPlant2.strain, width / 2, hybridY - 14);
         } else {
             text(crossText, width / 2, hybridY - 20);
         }
 
-        let hybridBtnW = isMobile ? 180 : 200;
-        let hybridBtnH = isMobile ? 44 : 50;
+        let hybridBtnW = isMobile ? 170 : 200;
+        let hybridBtnH = isMobile ? 40 : 50;
         buttons.push(new Button(width / 2 - hybridBtnW / 2, hybridY, hybridBtnW, hybridBtnH, '🧬 CROSS BREED', () => {
             playButtonSFX();
             performHybridization(selectedParentPlant1, selectedParentPlant2);
@@ -4024,8 +4045,10 @@ function drawHybridizationScreen() {
     }
 
     // Back button
-    let backBtnY = isMobile ? height - 55 : height - 70;
-    buttons.push(new Button(width / 2 - 80, backBtnY, 160, 45, '⬅️ BACK', () => {
+    let backBtnY = isMobile ? height - 52 : height - 70;
+    let backBtnW = isMobile ? 150 : 160;
+    let backBtnH = isMobile ? 40 : 45;
+    buttons.push(new Button(width / 2 - backBtnW / 2, backBtnY, backBtnW, backBtnH, '⬅️ BACK', () => {
         playButtonSFX();
         selectedParentPlant1 = null;
         selectedParentPlant2 = null;
@@ -4125,32 +4148,32 @@ function mousePressed() {
             videoEnded = false;
             fadeAlpha = 0;
 
-            // First, try to play the video muted (guaranteed to work on mobile)
-            introVideo.elt.muted = true;
-            introVideo.volume(0);
+            // Start muted for mobile compatibility, but immediately set volume for desktop
+            introVideo.elt.muted = false;
+            introVideo.volume(audioSettings.musicVolume);
 
             // Use promise-based play for better error handling
             let playPromise = introVideo.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    console.log('Video started playing (muted)');
+                    console.log('Video started playing with audio');
                     videoPlaying = true;
-
-                    // Now try to unmute after it starts playing (may or may not work depending on browser)
-                    setTimeout(() => {
-                        try {
-                            introVideo.elt.muted = false;
-                            introVideo.volume(audioSettings.musicVolume);
-                            console.log('Video unmuted successfully');
-                        } catch (err) {
-                            console.log('Could not unmute video, continuing muted:', err);
-                        }
-                    }, 100);
                 }).catch((error) => {
-                    console.log('Video playback failed even when muted:', error);
-                    // If even muted playback fails, skip to title screen
-                    gameState = 'titleScreen';
-                    videoPlaying = false;
+                    console.log('Video playback failed with audio, trying muted:', error);
+                    // If audio playback fails, try muted (for mobile)
+                    introVideo.elt.muted = true;
+                    introVideo.volume(0);
+                    let mutedPromise = introVideo.play();
+                    if (mutedPromise !== undefined) {
+                        mutedPromise.then(() => {
+                            console.log('Video started playing muted');
+                            videoPlaying = true;
+                        }).catch((err) => {
+                            console.log('Video playback failed completely:', err);
+                            gameState = 'titleScreen';
+                            videoPlaying = false;
+                        });
+                    }
                 });
             } else {
                 console.log('Play promise undefined, video may be playing anyway');
