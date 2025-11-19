@@ -1,5 +1,5 @@
 // === GAME STATE ===
-let gameState = 'touchToStart'; // touchToStart, openingCredits, titleScreen, strainSelect, locationSelect, growing, shop, hybridization, paused, settings, strainList, seedSelect
+let gameState = 'openingCredits'; // openingCredits, titleScreen, strainSelect, locationSelect, growing, shop, hybridization, paused, settings, strainList, seedSelect
 let player = {
     money: 500,
     inventory: {
@@ -41,11 +41,10 @@ let audioSettings = {
 let audioLoaded = false;
 
 // === INTRO VIDEO SYSTEM ===
-let introVideo;
+let introVideo; // Will reference the HTML video element
 let videoLoaded = false;
 let videoPlaying = false;
-let videoEnded = false;
-let fadeAlpha = 255; // For fade transition
+let videoSkipped = false;
 
 // === WEATHER SYSTEM ===
 let weather = {
@@ -1524,7 +1523,7 @@ function displayNotifications() {
         // Different positioning based on game state
         let bottomMargin = 180; // Default margin for gameplay screen
         if (gameState === 'locationSelect') {
-            bottomMargin = 320; // Increased margin to avoid covering location cards on mobile
+            bottomMargin = 380; // Further increased margin to avoid covering location cards on mobile
         } else if (gameState === 'strainSelect') {
             bottomMargin = 200; // Margin for strain selection
         } else if (gameState === 'shop' || gameState === 'hybridization' || gameState === 'strainList') {
@@ -1540,10 +1539,10 @@ function displayNotifications() {
         let notif = notifications[i];
         let age = gameTime - notif.time;
 
-        // Much faster clearing on mobile - after 60 frames on mobile, 90 on desktop
-        let clearTime = isMobile ? 60 : 90;
+        // MUCH faster clearing on mobile - after 40 frames on mobile, 90 on desktop
+        let clearTime = isMobile ? 40 : 90;
         if (age > clearTime) {
-            notif.alpha -= (isMobile ? 12 : 8); // Faster fade on mobile
+            notif.alpha -= (isMobile ? 20 : 8); // Much faster fade on mobile
             if (notif.alpha <= 0) {
                 notifications.splice(i, 1);
                 continue;
@@ -1599,55 +1598,9 @@ function setup() {
     canvas.parent('game-container');
     textFont('Arial');
 
-    // Load video (not playing yet - waiting for user interaction)
-    try {
-        introVideo = createVideo('inspiresoftwareintro.mp4');
-        introVideo.hide(); // Hide the video element, we'll draw it on canvas
-
-        // Mobile compatibility attributes - critical for iOS and Android
-        introVideo.elt.setAttribute('playsinline', 'true');
-        introVideo.elt.setAttribute('webkit-playsinline', 'true');
-        introVideo.elt.setAttribute('x-webkit-airplay', 'allow');
-        introVideo.elt.setAttribute('preload', 'auto');
-
-        // IMPORTANT: Start muted for mobile compatibility
-        // We'll try to unmute after user interaction
-        introVideo.elt.muted = true;
-        introVideo.elt.setAttribute('muted', 'true');
-        introVideo.elt.removeAttribute('autoplay');
-        introVideo.elt.defaultMuted = true;
-
-        // Set up video end callback
-        introVideo.onended(() => {
-            console.log('✓ Video playback ended');
-            videoEnded = true;
-            videoPlaying = false;
-        });
-
-        // Add load event listener for better tracking - only set loaded when ready
-        introVideo.elt.addEventListener('loadeddata', () => {
-            console.log('✓ Video data loaded and ready');
-            videoLoaded = true;
-        });
-
-        // Also listen for canplaythrough for full readiness
-        introVideo.elt.addEventListener('canplaythrough', () => {
-            console.log('✓ Video can play through without buffering');
-            videoLoaded = true;
-        });
-
-        // Add error handler
-        introVideo.elt.addEventListener('error', (e) => {
-            console.log('✗ Video loading error:', e);
-            videoLoaded = false;
-        });
-
-        console.log('▶ Video loading initiated...');
-    } catch (e) {
-        console.log('✗ Video creation error:', e);
-        videoLoaded = false;
-        // Don't skip to title screen yet - let the touch to start screen handle it
-    }
+    // Initialize tap-to-start and video intro handling (HTML-based like CLOSE ENCOUNTER)
+    setupIntroVideoHandling();
+    console.log('✓ Intro video setup complete');
 }
 
 function draw() {
@@ -1665,11 +1618,7 @@ function draw() {
     }
 
     // Route to different screens
-    if (gameState === 'touchToStart') {
-        drawTouchToStart();
-    } else if (gameState === 'openingCredits') {
-        drawOpeningCredits();
-    } else if (gameState === 'titleScreen') {
+    if (gameState === 'titleScreen') {
         drawTitleScreen();
     } else if (gameState === 'strainSelect') {
         drawStrainSelect();
@@ -1698,103 +1647,6 @@ function draw() {
         btn.checkHover(mouseX, mouseY);
         btn.display();
     }
-}
-
-// === TOUCH TO START SCREEN ===
-function drawTouchToStart() {
-    background(0);
-
-    // Animated "TOUCH SCREEN TO START GAME" text
-    push();
-    textFont('Bangers');
-    textAlign(CENTER, CENTER);
-
-    // Pulsing effect
-    let isMobile = width < 768;
-    let pulseSize = (isMobile ? 36 : 40) + sin(frameCount * 0.05) * 5;
-    let pulseAlpha = 200 + sin(frameCount * 0.05) * 55;
-
-    fill(100, 255, 100, pulseAlpha);
-    textSize(pulseSize);
-    text('TOUCH SCREEN', width / 2, height / 2 - 30);
-    text('TO START GAME', width / 2, height / 2 + 30);
-
-    // Subtitle
-    textFont('Carter One');
-    textSize(isMobile ? 14 : 16);
-    fill(180, 255, 180, pulseAlpha * 0.7);
-    text('🌿 CANNA-CULTIVATOR 🌿', width / 2, height / 2 + 80);
-    pop();
-
-    // Clear buttons array for this screen
-    buttons = [];
-}
-
-// === OPENING CREDITS ===
-function drawOpeningCredits() {
-    background(0);
-
-    // Check if video ended
-    if (videoEnded) {
-        // Fade to black then transition
-        if (fadeAlpha < 255) {
-            fadeAlpha += 5;
-
-            // Draw black overlay with increasing alpha
-            fill(0, 0, 0, fadeAlpha);
-            rect(0, 0, width, height);
-        } else {
-            // Transition to title screen
-            gameState = 'titleScreen';
-            fadeAlpha = 255;
-            if (introVideo) {
-                introVideo.stop();
-            }
-            return;
-        }
-    } else if (videoPlaying && introVideo) {
-        // Draw video on canvas
-        push();
-
-        // Calculate video dimensions to fit screen while maintaining aspect ratio
-        let videoAspect = introVideo.width / introVideo.height;
-        let screenAspect = width / height;
-
-        let drawWidth, drawHeight, drawX, drawY;
-
-        if (videoAspect > screenAspect) {
-            // Video is wider than screen
-            drawWidth = width;
-            drawHeight = width / videoAspect;
-            drawX = 0;
-            drawY = (height - drawHeight) / 2;
-        } else {
-            // Video is taller than screen
-            drawHeight = height;
-            drawWidth = height * videoAspect;
-            drawX = (width - drawWidth) / 2;
-            drawY = 0;
-        }
-
-        // Draw the video
-        image(introVideo, drawX, drawY, drawWidth, drawHeight);
-        pop();
-
-        // Add "TAP TO SKIP" indicator
-        push();
-        textFont('Carter One');
-        textAlign(CENTER);
-        textSize(14);
-
-        // Pulsing effect
-        let pulseAlpha = 150 + sin(frameCount * 0.1) * 105;
-        fill(255, 255, 255, pulseAlpha);
-        text('TAP TO SKIP', width / 2, height - 20);
-        pop();
-    }
-
-    // Clear buttons array for this screen
-    buttons = [];
 }
 
 // === TITLE SCREEN ===
@@ -2754,7 +2606,7 @@ function drawGrowingScreen() {
 
 function drawTopUI() {
     let isMobile = width < 768;
-    let headerHeight = isMobile ? 95 : 65; // Optimized mobile header height
+    let headerHeight = isMobile ? 75 : 65; // Reduced mobile header height to prevent overlap
 
     // Enhanced header with gradient background
     noStroke();
@@ -2778,62 +2630,62 @@ function drawTopUI() {
     noStroke();
 
     if (isMobile) {
-        // MOBILE LAYOUT - Compact and efficient
+        // MOBILE LAYOUT - More Compact and efficient to prevent overlap
         textAlign(LEFT, CENTER);
 
-        // Row 1: Money and Day - compact layout
+        // Row 1: Money and Day - ultra compact layout
         fill(255, 215, 0);
-        textSize(14);
+        textSize(12); // Smaller text
         textStyle(BOLD);
-        text(`💰 $${player.money}`, 8, 13);
+        text(`💰 $${player.money}`, 6, 11);
 
         fill(180, 255, 180);
-        textSize(11);
+        textSize(10); // Smaller text
         textStyle(NORMAL);
-        text(`📅 Day ${floor(gameTime / 180)}`, 8, 30);
+        text(`📅 Day ${floor(gameTime / 180)}`, 6, 24);
 
-        // Row 2: Inventory display - compact and efficient
+        // Row 2: Inventory display - more compact to fit better
         textAlign(CENTER, CENTER);
-        textSize(9);
+        textSize(8); // Smaller icons/text
         textStyle(BOLD);
 
         let itemW = width / 6;
-        let row2Y = 58; // Optimized position
-        let boxHeight = 28; // Compact height
+        let row2Y = 47; // Higher position to be more compact
+        let boxHeight = 24; // Smaller height
 
         // Water
         fill(41, 128, 185, 40);
-        rect(0, row2Y - 10, itemW, boxHeight, 0);
+        rect(0, row2Y - 8, itemW, boxHeight, 0);
         fill(100, 200, 255);
         text(`💧\n${floor(player.inventory.water)}`, itemW * 0.5, row2Y + 4);
 
         // Nitrogen
         fill(46, 125, 50, 40);
-        rect(itemW, row2Y - 10, itemW, boxHeight, 0);
+        rect(itemW, row2Y - 8, itemW, boxHeight, 0);
         fill(120, 255, 120);
         text(`🌱\n${floor(player.inventory.nutrients.nitrogen)}`, itemW * 1.5, row2Y + 4);
 
         // Phosphorus
         fill(142, 68, 173, 40);
-        rect(itemW * 2, row2Y - 10, itemW, boxHeight, 0);
+        rect(itemW * 2, row2Y - 8, itemW, boxHeight, 0);
         fill(220, 130, 255);
         text(`🌸\n${floor(player.inventory.nutrients.phosphorus)}`, itemW * 2.5, row2Y + 4);
 
         // Potassium
         fill(230, 126, 34, 40);
-        rect(itemW * 3, row2Y - 10, itemW, boxHeight, 0);
+        rect(itemW * 3, row2Y - 8, itemW, boxHeight, 0);
         fill(255, 200, 120);
         text(`🍌\n${floor(player.inventory.nutrients.potassium)}`, itemW * 3.5, row2Y + 4);
 
         // Pesticide
         fill(211, 84, 0, 40);
-        rect(itemW * 4, row2Y - 10, itemW, boxHeight, 0);
+        rect(itemW * 4, row2Y - 8, itemW, boxHeight, 0);
         fill(255, 140, 140);
         text(`🔫\n${player.inventory.pesticide}`, itemW * 4.5, row2Y + 4);
 
         // Light power
         fill(241, 196, 15, 40);
-        rect(itemW * 5, row2Y - 10, itemW, boxHeight, 0);
+        rect(itemW * 5, row2Y - 8, itemW, boxHeight, 0);
         fill(255, 255, 180);
         text(`💡\n${player.inventory.lights.power}%`, itemW * 5.5, row2Y + 4);
 
@@ -2900,7 +2752,7 @@ function drawTopUI() {
 
 function drawControlPanel() {
     let isMobile = width < 768;
-    let panelHeight = isMobile ? 160 : 130; // Taller panel on mobile to accommodate buttons
+    let panelHeight = isMobile ? 140 : 130; // Slightly shorter panel on mobile to reduce overlap
     let panelY = height - panelHeight;
 
     // Panel background with gradient
@@ -2923,10 +2775,10 @@ function setupGrowingButtons() {
     let isMobile = width < 768;
 
     // Pause button - positioned to avoid overlap with status icons
-    let pauseBtnSize = isMobile ? 42 : 45;
+    let pauseBtnSize = isMobile ? 38 : 45; // Smaller on mobile
     // Mobile: top-right below the header to avoid status bar overlap
     // Desktop: top-right corner as usual
-    let pauseBtnTop = isMobile ? 100 : 5;
+    let pauseBtnTop = isMobile ? 78 : 5; // Adjusted for shorter header
     let pauseBtnLeft = width - pauseBtnSize - (isMobile ? 5 : 8);
     let pauseBtn = new Button(pauseBtnLeft, pauseBtnTop, pauseBtnSize, pauseBtnSize, '⏸', () => {
         playButtonSFX();
@@ -2939,9 +2791,9 @@ function setupGrowingButtons() {
 
     // Mobile: larger buttons for better touch targets with better spacing
     // Desktop: original compact layout
-    let btnY = isMobile ? height - 125 : height - 105; // Adjusted for taller panel
-    let btnHeight = isMobile ? 44 : 38; // Larger touch targets
-    let btnSpacing = isMobile ? 4 : 8; // Tighter spacing on mobile
+    let btnY = isMobile ? height - 108 : height - 105; // Adjusted for shorter panel
+    let btnHeight = isMobile ? 40 : 38; // Slightly smaller for better fit
+    let btnSpacing = isMobile ? 3 : 8; // Tighter spacing on mobile
     let totalBtns = 6;
     let availableWidth = isMobile ? width - (btnSpacing * 2) : width;
     let btnWidth = (availableWidth - btnSpacing * (totalBtns + 1)) / totalBtns;
@@ -3284,7 +3136,7 @@ function drawSeedSelectScreen() {
     let cardW = isMobile ? min(width * 0.7, 180) : min(160, (width - 60) / 4);
     let cardH = isMobile ? min(160, height * 0.35) : 200;
     let spacing = isMobile ? 15 : 10;
-    let startY = isMobile ? 65 : 90;
+    let startY = isMobile ? (height - cardH) / 2 + 10 : 90; // Better vertical centering on mobile
 
     // Mobile: horizontal scrolling effect - show 1 card at a time with left/right navigation
     if (isMobile && strainNames.length > 0) {
@@ -3300,8 +3152,8 @@ function drawSeedSelectScreen() {
         let seeds = seedsByStrain[strainName];
         let strain = strainDatabase[strainName];
 
-        let x = (width - cardW) / 2;
-        let y = startY;
+        let x = (width - cardW) / 2;  // Center horizontally
+        let y = startY;  // Center vertically
 
         // Card background
         fill(40, 50, 40);
@@ -3480,11 +3332,13 @@ function drawShop() {
     let cardH = isMobile ? 90 : 100;
     let cardSpacing = isMobile ? 8 : 20;
     let cols = isMobile ? 2 : floor(width / (cardW + 20));
-    let startX = (width - cols * (cardW + cardSpacing)) / 2 + cardSpacing / 2;
+    // Improved horizontal centering calculation
+    let totalRowWidth = cols * cardW + (cols - 1) * cardSpacing;
+    let startX = (width - totalRowWidth) / 2;
     // Better vertical centering for mobile shop items
     let rows = Math.ceil(items.length / cols);
     let totalContentHeight = rows * cardH + (rows - 1) * (isMobile ? 10 : 15);
-    let startY = isMobile ? max(75, (height - totalContentHeight) / 2 - 20) : 110;
+    let startY = isMobile ? max(80, (height - totalContentHeight) / 2) : 110;
 
     for (let i = 0; i < items.length; i++) {
         let item = items[i];
@@ -3742,14 +3596,17 @@ function drawSettingsMenu() {
     strokeWeight(3);
     rect(panelX, panelY, panelW, panelH, 15);
 
-    // Title - matching style with other menus (no outline)
+    // Title - matching style with other menus (explicitly NO stroke/outline)
+    push(); // Isolate text styling
     textFont('Bangers');
     textAlign(CENTER);
     textSize(36);
     textStyle(NORMAL);
-    noStroke(); // No outline to match other menu titles
+    noStroke(); // Explicitly no outline to match other menu titles
+    strokeWeight(0); // Ensure no stroke weight
     fill(220, 255, 220);
     text('⚙️ SETTINGS', width / 2, panelY + 50);
+    pop(); // Restore previous state
 
     // Settings content
     textFont('Carter One');
@@ -4317,91 +4174,6 @@ function performHybridization(parent1, parent2) {
 
 // === MOUSE/TOUCH HANDLING ===
 function mousePressed() {
-    // Handle touch to start screen
-    if (gameState === 'touchToStart') {
-        if (videoLoaded && introVideo) {
-            // Start playing the intro video
-            gameState = 'openingCredits';
-            videoEnded = false;
-            fadeAlpha = 0;
-
-            // Reset video to start
-            introVideo.time(0);
-
-            // Try to play with audio first (desktop), fallback to muted (mobile)
-            // Add small delay to ensure state transition is complete
-            const tryPlayWithAudio = () => {
-                setTimeout(() => {
-                    introVideo.elt.muted = false;
-                    introVideo.volume(audioSettings.musicVolume);
-
-                    let playPromise = introVideo.play();
-                    if (playPromise !== undefined) {
-                        playPromise.then(() => {
-                            console.log('✓ Video started playing with audio');
-                            videoPlaying = true;
-                        }).catch((error) => {
-                            console.log('⚠ Video playback with audio failed, trying muted:', error);
-                            // Fallback to muted playback for mobile devices
-                            tryPlayMuted();
-                        });
-                    } else {
-                        console.log('Play promise undefined, assuming video is playing');
-                        videoPlaying = true;
-                    }
-                }, 100); // Small delay for mobile compatibility
-            };
-
-            const tryPlayMuted = () => {
-                setTimeout(() => {
-                    introVideo.stop();
-                    introVideo.time(0);
-                    introVideo.elt.muted = true;
-                    introVideo.volume(0);
-
-                    let mutedPromise = introVideo.play();
-                    if (mutedPromise !== undefined) {
-                        mutedPromise.then(() => {
-                            console.log('✓ Video started playing muted (mobile mode)');
-                            videoPlaying = true;
-                        }).catch((err) => {
-                            console.log('✗ Video playback failed completely:', err);
-                            // Skip to title screen if video can't play at all
-                            gameState = 'titleScreen';
-                            videoPlaying = false;
-                            fadeAlpha = 255;
-                        });
-                    } else {
-                        videoPlaying = true;
-                    }
-                }, 100); // Small delay for mobile compatibility
-            };
-
-            // Start with audio attempt
-            console.log('▶ Attempting to play intro video...');
-            tryPlayWithAudio();
-        } else {
-            // Skip to title screen if video failed to load
-            console.log('Video not loaded, skipping to title screen');
-            gameState = 'titleScreen';
-            videoPlaying = false;
-            fadeAlpha = 255;
-        }
-        return;
-    }
-
-    // Allow skipping the opening credits by tapping
-    if (gameState === 'openingCredits') {
-        if (videoPlaying && introVideo) {
-            introVideo.stop();
-        }
-        gameState = 'titleScreen';
-        videoPlaying = false;
-        videoEnded = false;
-        fadeAlpha = 255;
-        return;
-    }
-
     // Handle button clicks
     for (let btn of buttons) {
         if (btn.isClicked(mouseX, mouseY)) {
@@ -4426,6 +4198,90 @@ function mousePressed() {
 function touchStarted() {
     mousePressed();
     return false; // Prevent default
+}
+
+// === INTRO VIDEO HANDLING (HTML-based like CLOSE ENCOUNTER) ===
+function setupIntroVideoHandling() {
+    const tapToStart = document.getElementById('tapToStart');
+    const videoIntro = document.getElementById('videoIntro');
+    const introVideoElement = document.getElementById('introVideo');
+
+    // Initially hide the video (it will be shown after tap)
+    videoIntro.style.display = 'none';
+
+    function showMenuScreen() {
+        // Fade out video intro
+        videoIntro.classList.add('fade-out');
+
+        // After fade out completes, hide video and show menu
+        setTimeout(() => {
+            videoIntro.classList.add('hidden');
+            videoIntro.style.display = 'none';
+            gameState = 'titleScreen';
+            videoPlaying = false;
+
+            // Start menu music after video ends
+            startBackgroundMusic();
+        }, 1000); // Match the fade-out transition duration
+    }
+
+    // Handle tap to start
+    function handleTapToStart() {
+        // Hide tap to start screen
+        tapToStart.classList.add('hidden');
+
+        setTimeout(() => {
+            tapToStart.classList.add('fade-out');
+
+            // Show and start video with audio
+            videoIntro.style.display = 'flex';
+            introVideoElement.muted = false; // Enable audio
+
+            // Try to play the video with audio
+            const playPromise = introVideoElement.play();
+
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log('✓ Video playing with audio');
+                    videoPlaying = true;
+                    videoLoaded = true;
+                }).catch(error => {
+                    console.log('⚠ Video play failed, trying muted:', error);
+                    // Fallback to muted if audio fails
+                    introVideoElement.muted = true;
+                    introVideoElement.play().catch(e => {
+                        console.log('✗ Muted video also failed, showing menu:', e);
+                        showMenuScreen();
+                    });
+                });
+            }
+        }, 500); // Short delay for smooth transition
+    }
+
+    // Add tap/click listeners to tap-to-start screen
+    tapToStart.addEventListener('click', handleTapToStart);
+    tapToStart.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleTapToStart();
+    }, { passive: false });
+
+    // Handle video ended event
+    introVideoElement.addEventListener('ended', showMenuScreen);
+
+    // Handle video error (fallback to menu immediately)
+    introVideoElement.addEventListener('error', () => {
+        console.log('✗ Video intro error, showing menu directly');
+        showMenuScreen();
+    });
+
+    // Optional: Add skip button (click/touch video to skip)
+    videoIntro.addEventListener('click', () => {
+        if (videoPlaying && !videoSkipped) {
+            videoSkipped = true;
+            introVideoElement.pause();
+            showMenuScreen();
+        }
+    });
 }
 
 // === WINDOW RESIZE ===
