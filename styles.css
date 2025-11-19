@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Righteous&family=Fredoka:wght@400;600&family=Baloo+2:wght@400;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Baloo 2', 'Fredoka', cursive, sans-serif;
+    background: #000000;
+    overflow: hidden;
+    touch-action: none;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}
+
+#game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    background: #000000;
+}
+
+canvas {
+    display: block;
+    box-shadow: 0 0 40px rgba(0, 255, 128, 0.5);
+    max-width: 100%;
+    max-height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4ade80;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #22c55e;
+}
+
+/* Prevent text selection on mobile */
+body, button, div {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Loading animation */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.loading {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Responsive text sizing */
+@media (max-width: 600px) {
+    body {
+        font-size: 14px;
+    }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+    body {
+        font-size: 12px;
+    }
+}
