@@ -570,7 +570,7 @@ class Plant {
 
         // Stage indicator with better styling
         fill(255, 255, 255, 230);
-        textFont('Permanent Marker');
+        textFont('Carter One');
         textAlign(CENTER);
         textSize(11);
         text(this.stage.toUpperCase(), 0, this.height + 40);
@@ -954,7 +954,7 @@ function displayNotifications() {
         rect(xOffset, yOffset, notifWidth, 38, 8);
 
         // Notification text - left aligned
-        textFont('Permanent Marker');
+        textFont('Carter One');
         fill(255, notif.alpha);
         noStroke();
         textAlign(LEFT, CENTER);
@@ -1197,7 +1197,7 @@ function drawStrainSelect() {
         text(strain, x + cardWidth / 2, y + 26);
 
         // Stats with better formatting
-        textFont('Permanent Marker');
+        textFont('Carter One');
         textSize(13);
         textStyle(NORMAL); // Remove italics
         fill(200, 255, 200);
@@ -1328,7 +1328,7 @@ function drawLocationSelect() {
     textStyle(NORMAL); // Remove italics
     text('🏠 INDOOR', indoorX + cardWidth / 2, indoorY + 35);
 
-    textFont('Permanent Marker');
+    textFont('Carter One');
     textSize(15);
     textStyle(NORMAL); // Remove italics
     fill(200, 200, 255);
@@ -1377,7 +1377,7 @@ function drawLocationSelect() {
     textStyle(NORMAL); // Remove italics
     text('🌞 OUTDOOR', outdoorX + cardWidth / 2, outdoorY + 35);
 
-    textFont('Permanent Marker');
+    textFont('Carter One');
     textSize(15);
     textStyle(NORMAL); // Remove italics
     fill(200, 255, 200);
@@ -1946,7 +1946,7 @@ function setupGrowingButtons() {
 
     let x = btnSpacing;
 
-    textFont('Permanent Marker');
+    textFont('Carter One');
 
     // Water button - earthy blue/cyan color
     let waterBtn = new Button(x, btnY, btnWidth, btnHeight, '💧', () => {
@@ -2128,7 +2128,7 @@ function drawPlantDetails(plant) {
     }
     text(`${plant.gender === 'female' ? '♀' : '♂'} ${strainName}`, panelX + 12, panelY + 12);
 
-    textFont('Permanent Marker');
+    textFont('Carter One');
     textSize(12);
     fill(200, 255, 200);
     let infoY = panelY + 38;
