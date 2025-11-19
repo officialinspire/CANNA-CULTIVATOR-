@@ -1012,8 +1012,10 @@ function setup() {
 function draw() {
     background(20, 40, 30);
 
-    // Only update game time if not paused
-    if (!gamePaused) {
+    // Only update game time if not paused AND in active gameplay states
+    // Do NOT increment time during menu screens (touchToStart, openingCredits, titleScreen, strainSelect, locationSelect, paused, settings)
+    let activeGameplayStates = ['growing', 'shop', 'harvest', 'hybridization'];
+    if (!gamePaused && activeGameplayStates.includes(gameState)) {
         gameTime += timeSpeed;
         dayNightCycle += 0.01; // Fixed and balanced day/night cycle - full cycle every ~628 frames
 
@@ -1272,19 +1274,19 @@ function drawStrainSelect() {
 
     push();
 
-    // Title with better font - perfectly centered
+    // Title with better font - perfectly centered with margin
     textFont('Bangers');
     fill(220, 255, 220);
     textAlign(CENTER);
     textSize(32);
     textStyle(NORMAL); // Ensure no italic
-    text('Choose Your Starter Strain', width / 2, 32);
+    text('Choose Your Starter Strain', width / 2, 50);
 
     textFont('Carter One');
     textSize(14);
     textStyle(NORMAL); // Ensure no italic
     fill(180, 255, 180);
-    text('Select your first cannabis seed (Like choosing your starter Pokemon!)', width / 2, 58);
+    text('Select your first cannabis seed (Like choosing your starter Pokemon!)', width / 2, 78);
 
     // Strain cards - perfectly centered horizontally AND vertically
     let cardWidth = 240;
@@ -1294,7 +1296,7 @@ function drawStrainSelect() {
     totalWidth += spacing * 2; // Add spacing between cards
 
     let startX = (width - totalWidth) / 2; // Center the whole group horizontally
-    let titleHeight = 70; // Space for title
+    let titleHeight = 90; // Space for title (increased for better margin)
     let startY = (height - cardHeight) / 2 + titleHeight / 2; // Center vertically considering title
 
     buttons = [];
