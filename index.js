@@ -1553,7 +1553,28 @@ function displayNotifications() {
 
 // === P5.JS SETUP ===
 function setup() {
-    let canvas = createCanvas(min(800, windowWidth), min(600, windowHeight));
+    // Responsive canvas sizing that works on desktop and mobile
+    let canvasWidth, canvasHeight;
+
+    // Determine canvas dimensions based on device and orientation
+    if (windowWidth < 768) {
+        // Mobile devices
+        if (windowWidth > windowHeight) {
+            // Landscape mobile
+            canvasWidth = min(windowWidth, 800);
+            canvasHeight = min(windowHeight, 600);
+        } else {
+            // Portrait mobile - use full width, maintain aspect ratio
+            canvasWidth = windowWidth;
+            canvasHeight = min(windowHeight, canvasWidth * 0.75); // 4:3 aspect ratio
+        }
+    } else {
+        // Desktop/tablet - keep original behavior
+        canvasWidth = min(800, windowWidth);
+        canvasHeight = min(600, windowHeight);
+    }
+
+    let canvas = createCanvas(canvasWidth, canvasHeight);
     canvas.parent('game-container');
     textFont('Arial');
 
@@ -1563,9 +1584,11 @@ function setup() {
         introVideo.hide(); // Hide the video element, we'll draw it on canvas
         introVideo.volume(audioSettings.musicVolume);
 
-        // iOS-specific attributes for better compatibility
-        introVideo.elt.setAttribute('playsinline', '');
-        introVideo.elt.setAttribute('webkit-playsinline', '');
+        // Mobile compatibility attributes - critical for iOS and Android
+        introVideo.elt.setAttribute('playsinline', 'true');
+        introVideo.elt.setAttribute('webkit-playsinline', 'true');
+        introVideo.elt.setAttribute('muted', 'false'); // Start unmuted but respect volume
+        introVideo.elt.setAttribute('preload', 'auto'); // Preload for faster playback
 
         // Set up video end callback
         introVideo.onended(() => {
@@ -1849,30 +1872,34 @@ function drawStrainSelect() {
 
     push();
 
-    // Title with better font - perfectly centered
+    // Title with better font - perfectly centered and responsive
+    let isMobile = width < 768;
     textFont('Bangers');
     fill(220, 255, 220);
     textAlign(CENTER);
-    textSize(32);
+    textSize(isMobile ? min(width * 0.08, 32) : 32);
     textStyle(NORMAL); // Ensure no italic
     text('Choose Your Starter Strain', width / 2, 32);
 
     textFont('Carter One');
-    textSize(14);
+    textSize(isMobile ? min(width * 0.035, 14) : 14);
     textStyle(NORMAL); // Ensure no italic
     fill(180, 255, 180);
     text('Select your first cannabis seed (Like choosing your starter Pokemon!)', width / 2, 58);
 
-    // Strain cards - perfectly centered horizontally AND vertically
-    let cardWidth = 240;
-    let cardHeight = 270;
-    let totalWidth = cardWidth * 3;
-    let spacing = 20;
-    totalWidth += spacing * 2; // Add spacing between cards
+    // Strain cards - responsive layout for mobile and desktop
+    let cardWidth = isMobile ? min(width * 0.85, 240) : 240; // Scale down for mobile
+    let cardHeight = isMobile ? min(cardWidth * 1.125, 270) : 270; // Maintain aspect ratio on mobile
+    let spacing = isMobile ? 10 : 20;
 
+    // Adjust layout for mobile portrait mode
+    let cols = (isMobile && width < 600) ? 1 : 3; // Stack vertically on narrow mobile screens
+    let rows = Math.ceil(3 / cols);
+
+    let totalWidth = cols * cardWidth + (cols - 1) * spacing;
     let startX = (width - totalWidth) / 2; // Center the whole group horizontally
     let titleHeight = 70; // Space for title
-    let startY = (height - cardHeight) / 2 + titleHeight / 2; // Center vertically considering title
+    let startY = (height - (rows * cardHeight + (rows - 1) * spacing)) / 2 + titleHeight / 2; // Center vertically considering title
 
     buttons = [];
 
@@ -1881,8 +1908,12 @@ function drawStrainSelect() {
     for (let i = 0; i < strains.length; i++) {
         let strain = strains[i];
         let data = strainDatabase[strain];
-        let x = startX + i * (cardWidth + spacing);
-        let y = startY;
+
+        // Calculate card position based on grid layout
+        let col = i % cols;
+        let row = floor(i / cols);
+        let x = startX + col * (cardWidth + spacing);
+        let y = startY + row * (cardHeight + spacing);
 
         // Card shadow
         fill(0, 0, 0, 80);
@@ -1901,23 +1932,23 @@ function drawStrainSelect() {
         strokeWeight(1);
         rect(x + 5, y + 5, cardWidth - 10, cardHeight - 10, 10);
 
-        // Strain name with custom font
+        // Strain name with custom font - responsive text size
         textFont('Carter One');
         fill(data.color[0] + 30, data.color[1] + 30, data.color[2] + 30);
         noStroke();
         textAlign(CENTER);
-        textSize(18);
+        textSize(isMobile ? min(cardWidth * 0.075, 18) : 18);
         textStyle(NORMAL); // Remove italics
         text(strain, x + cardWidth / 2, y + 26);
 
-        // Stats with better formatting
+        // Stats with better formatting - responsive text size
         textFont('Carter One');
-        textSize(13);
+        textSize(isMobile ? min(cardWidth * 0.054, 13) : 13);
         textStyle(NORMAL); // Remove italics
         fill(200, 255, 200);
         textAlign(LEFT);
         let statY = y + 52;
-        let lineGap = 21;
+        let lineGap = isMobile ? min(cardWidth * 0.0875, 21) : 21;
         
         text(`🌱 Growth: ${data.growthRate}x`, x + 15, statY);
         text(`💪 Potency: ${data.potency}%`, x + 15, statY + lineGap);
@@ -2001,23 +2032,30 @@ function drawLocationSelect() {
 
     push();
 
+    let isMobile = width < 768;
+
     textFont('Bangers');
     fill(220, 255, 220);
     textAlign(CENTER);
-    textSize(34);
+    textSize(isMobile ? min(width * 0.085, 34) : 34);
     textStyle(NORMAL); // Remove italics
     text('Choose Growing Location', width / 2, 40);
 
     buttons = [];
 
-    // Cards with perfect centering - horizontally AND vertically
-    let cardWidth = 340;
-    let cardHeight = 330;
-    let spacing = 30;
-    let totalWidth = cardWidth * 2 + spacing;
+    // Cards with responsive sizing for mobile and desktop
+    let cardWidth = isMobile ? min(width * 0.85, 340) : 340;
+    let cardHeight = isMobile ? min(cardWidth * 0.97, 330) : 330;
+    let spacing = isMobile ? 15 : 30;
+
+    // Stack vertically on narrow mobile screens
+    let stackVertical = isMobile && width < 600;
+    let totalWidth = stackVertical ? cardWidth : cardWidth * 2 + spacing;
+    let totalHeight = stackVertical ? cardHeight * 2 + spacing : cardHeight;
+
     let startX = (width - totalWidth) / 2;
     let titleHeight = 50; // Space for title
-    let cardY = (height - cardHeight) / 2 + titleHeight / 2; // Center vertically considering title
+    let cardY = stackVertical ? (height - totalHeight) / 2 + titleHeight / 2 : (height - cardHeight) / 2 + titleHeight / 2; // Center vertically considering title
 
     // Indoor card
     let indoorX = startX;
@@ -2038,17 +2076,17 @@ function drawLocationSelect() {
     fill(180, 180, 255);
     noStroke();
     textAlign(CENTER); // Center alignment
-    textSize(28);
+    textSize(isMobile ? min(cardWidth * 0.082, 28) : 28);
     textStyle(NORMAL); // Remove italics
     text('🏠 INDOOR', indoorX + cardWidth / 2, indoorY + 35);
 
     textFont('Carter One');
-    textSize(15);
+    textSize(isMobile ? min(cardWidth * 0.044, 15) : 15);
     textStyle(NORMAL); // Remove italics
     fill(200, 200, 255);
     textAlign(LEFT);
     let infoX = indoorX + 22;
-    let lineHeight = 28;
+    let lineHeight = isMobile ? min(cardWidth * 0.082, 28) : 28;
     let startInfo = indoorY + 80;
     text('✓ Controlled environment', infoX, startInfo);
     text('✓ No weather effects', infoX, startInfo + lineHeight);
@@ -2068,9 +2106,9 @@ function drawLocationSelect() {
         [100, 100, 220]
     ));
 
-    // Outdoor card
-    let outdoorX = startX + cardWidth + spacing;
-    let outdoorY = cardY;
+    // Outdoor card - adjust position for vertical stacking on mobile
+    let outdoorX = stackVertical ? startX : startX + cardWidth + spacing;
+    let outdoorY = stackVertical ? cardY + cardHeight + spacing : cardY;
     
     // Shadow
     fill(0, 0, 0, 80);
@@ -2087,12 +2125,12 @@ function drawLocationSelect() {
     fill(180, 255, 180);
     noStroke();
     textAlign(CENTER); // Center alignment - FIX for outdoor title
-    textSize(28);
+    textSize(isMobile ? min(cardWidth * 0.082, 28) : 28);
     textStyle(NORMAL); // Remove italics
     text('🌞 OUTDOOR', outdoorX + cardWidth / 2, outdoorY + 35);
 
     textFont('Carter One');
-    textSize(15);
+    textSize(isMobile ? min(cardWidth * 0.044, 15) : 15);
     textStyle(NORMAL); // Remove italics
     fill(200, 255, 200);
     textAlign(LEFT);
@@ -3069,16 +3107,18 @@ function drawSeedSelectScreen() {
 function drawShop() {
     background(25, 35, 25);
 
-    // Title
+    let isMobile = width < 768;
+
+    // Title - responsive
     fill(255, 215, 0);
     textAlign(CENTER, TOP);
-    textSize(32);
+    textSize(isMobile ? min(width * 0.08, 32) : 32);
     textStyle(BOLD);
     text('🏪 GROW SHOP', width / 2, 20);
 
-    // Money display
+    // Money display - responsive
     fill(150, 255, 150);
-    textSize(20);
+    textSize(isMobile ? min(width * 0.05, 20) : 20);
     text(`💰 Balance: $${player.money}`, width / 2, 60);
 
     buttons = [];
@@ -3112,15 +3152,15 @@ function drawShop() {
         strokeWeight(2);
         rect(x, y, cardW, cardH, 8);
 
-        // Item info
+        // Item info - responsive text
         fill(255);
         noStroke();
         textAlign(LEFT, TOP);
-        textSize(16);
+        textSize(isMobile ? min(cardW * 0.073, 16) : 16);
         textStyle(BOLD);
         text(`${item.icon} ${item.name}`, x + 10, y + 10);
 
-        textSize(14);
+        textSize(isMobile ? min(cardW * 0.064, 14) : 14);
         textStyle(NORMAL);
         fill(255, 215, 0);
         text(`💰 $${item.cost}`, x + 10, y + 35);
@@ -3822,29 +3862,45 @@ function performHybridization(parent1, parent2) {
 function mousePressed() {
     // Handle touch to start screen
     if (gameState === 'touchToStart') {
-        if (videoLoaded) {
+        if (videoLoaded && introVideo) {
             // Start playing the intro video
             gameState = 'openingCredits';
             videoPlaying = true;
             videoEnded = false;
             fadeAlpha = 0;
-            if (introVideo) {
-                // Use promise-based play for better error handling
-                let playPromise = introVideo.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        console.log('Video started playing');
-                    }).catch((error) => {
-                        console.log('Video autoplay prevented:', error);
-                        // If autoplay fails, go directly to title screen
+
+            // Use promise-based play for better error handling on mobile
+            let playPromise = introVideo.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log('Video started playing successfully');
+                    videoPlaying = true;
+                }).catch((error) => {
+                    console.log('Video playback prevented (possibly autoplay policy):', error);
+                    // Try to play muted as fallback for mobile browsers
+                    introVideo.volume(0);
+                    let mutedPlayPromise = introVideo.play();
+                    if (mutedPlayPromise !== undefined) {
+                        mutedPlayPromise.then(() => {
+                            console.log('Video playing muted');
+                            videoPlaying = true;
+                        }).catch((err) => {
+                            console.log('Video playback completely blocked:', err);
+                            // If even muted playback fails, skip to title screen
+                            gameState = 'titleScreen';
+                            videoPlaying = false;
+                        });
+                    } else {
+                        // If play doesn't return a promise, skip to title screen
                         gameState = 'titleScreen';
                         videoPlaying = false;
-                    });
-                }
+                    }
+                });
             }
         } else {
             // Skip to title screen if video failed to load
             gameState = 'titleScreen';
+            videoPlaying = false;
         }
         return;
     }
@@ -3889,5 +3945,26 @@ function touchStarted() {
 
 // === WINDOW RESIZE ===
 function windowResized() {
-    resizeCanvas(min(800, windowWidth), min(600, windowHeight));
+    // Responsive canvas sizing that works on desktop and mobile
+    let canvasWidth, canvasHeight;
+
+    // Determine canvas dimensions based on device and orientation
+    if (windowWidth < 768) {
+        // Mobile devices
+        if (windowWidth > windowHeight) {
+            // Landscape mobile
+            canvasWidth = min(windowWidth, 800);
+            canvasHeight = min(windowHeight, 600);
+        } else {
+            // Portrait mobile - use full width, maintain aspect ratio
+            canvasWidth = windowWidth;
+            canvasHeight = min(windowHeight, canvasWidth * 0.75); // 4:3 aspect ratio
+        }
+    } else {
+        // Desktop/tablet - keep original behavior
+        canvasWidth = min(800, windowWidth);
+        canvasHeight = min(600, windowHeight);
+    }
+
+    resizeCanvas(canvasWidth, canvasHeight);
 }
