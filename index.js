@@ -1,26 +1,34 @@
 // === GAME STATE ===
-let gameState = 'touchToStart'; // touchToStart, openingCredits, titleScreen, strainSelect, locationSelect, growing, shop, harvest, hybridization, paused, settings
+let gameState = 'touchToStart'; // touchToStart, openingCredits, titleScreen, strainSelect, locationSelect, growing, shop, hybridization, paused, settings, strainList, seedSelect
 let player = {
     money: 500,
     inventory: {
-        seeds: [],
+        seeds: [
+            // Seeds have: {strain, gender, quality}
+            { strain: 'Northern Lights', gender: null, quality: 1.0 },
+            { strain: 'Sour Diesel', gender: null, quality: 1.0 },
+            { strain: 'Purple Haze', gender: null, quality: 1.0 }
+        ],
         nutrients: { nitrogen: 10, phosphorus: 10, potassium: 10 },
         pesticide: 5,
         water: 100,
         lights: { type: 'basic', power: 100 }
     },
     harvestedWeed: [],
-    completedFirstHarvest: false
+    completedFirstHarvest: false,
+    unlockedStrains: ['Northern Lights', 'Sour Diesel', 'Purple Haze'] // Track unlocked strains
 };
 
 let plants = [];
 let maxPlants = 4;
 let gameTime = 0;
 let dayNightCycle = 0;
-let timeSpeed = 0.3; // Slow down time significantly
+let timeSpeed = 0.25; // Slowed down even more for relaxed gameplay (was 0.3)
 let gamePaused = false;
 let previousGameState = null;
 let savedGameplayState = null; // Stores the actual gameplay state when entering pause/settings
+let selectedParentPlant1 = null; // For hybridization
+let selectedParentPlant2 = null; // For hybridization
 
 // === AUDIO SYSTEM ===
 let menuMusic, gameplayMusic, buttonSFX, notificationSFX;
@@ -50,14 +58,23 @@ let weather = {
 };
 
 // === STRAIN DATABASE ===
+// 36 unique cannabis strains with breeding system
 const strainDatabase = {
+    // === STARTER STRAINS (Always unlocked) ===
     'Northern Lights': {
         color: [120, 255, 120],
         growthRate: 1.0,
         potency: 70,
         price: 15,
         flowering: 60,
-        difficulty: 'easy'
+        difficulty: 'easy',
+        rarity: 'common',
+        parents: null,
+        unlocked: true,
+        leafShape: 'wide',
+        budDensity: 'medium',
+        specialRequirement: null,
+        hint: 'Starter strain - Always available'
     },
     'Sour Diesel': {
         color: [255, 255, 100],
@@ -65,7 +82,14 @@ const strainDatabase = {
         potency: 85,
         price: 20,
         flowering: 70,
-        difficulty: 'medium'
+        difficulty: 'medium',
+        rarity: 'common',
+        parents: null,
+        unlocked: true,
+        leafShape: 'narrow',
+        budDensity: 'loose',
+        specialRequirement: null,
+        hint: 'Starter strain - Always available'
     },
     'Purple Haze': {
         color: [200, 120, 255],
@@ -73,13 +97,546 @@ const strainDatabase = {
         potency: 90,
         price: 25,
         flowering: 75,
-        difficulty: 'hard'
+        difficulty: 'hard',
+        rarity: 'common',
+        parents: null,
+        unlocked: true,
+        leafShape: 'medium',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Starter strain - Always available'
+    },
+
+    // === TIER 1: Basic Crosses (Unlocked by breeding starters) ===
+    'White Widow': {
+        color: [200, 255, 200],
+        growthRate: 0.95,
+        potency: 80,
+        price: 30,
+        flowering: 65,
+        difficulty: 'medium',
+        rarity: 'uncommon',
+        parents: ['Northern Lights', 'Sour Diesel'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Cross Northern Lights + Sour Diesel'
+    },
+    'Blue Dream': {
+        color: [150, 180, 255],
+        growthRate: 0.85,
+        potency: 85,
+        price: 35,
+        flowering: 68,
+        difficulty: 'medium',
+        rarity: 'uncommon',
+        parents: ['Purple Haze', 'Northern Lights'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'medium',
+        specialRequirement: null,
+        hint: 'Cross Purple Haze + Northern Lights'
+    },
+    'Green Crack': {
+        color: [100, 255, 100],
+        growthRate: 1.1,
+        potency: 78,
+        price: 28,
+        flowering: 55,
+        difficulty: 'easy',
+        rarity: 'uncommon',
+        parents: ['Sour Diesel', 'Northern Lights'],
+        unlocked: false,
+        leafShape: 'narrow',
+        budDensity: 'loose',
+        specialRequirement: null,
+        hint: 'Cross Sour Diesel + Northern Lights'
+    },
+    'Granddaddy Purple': {
+        color: [180, 100, 220],
+        growthRate: 0.75,
+        potency: 92,
+        price: 40,
+        flowering: 70,
+        difficulty: 'medium',
+        rarity: 'uncommon',
+        parents: ['Purple Haze', 'Purple Haze'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Cross Purple Haze with itself (same strain breeding)'
+    },
+
+    // === TIER 2: Advanced Crosses ===
+    'OG Kush': {
+        color: [140, 220, 140],
+        growthRate: 0.88,
+        potency: 88,
+        price: 45,
+        flowering: 65,
+        difficulty: 'hard',
+        rarity: 'rare',
+        parents: ['White Widow', 'Green Crack'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'dense',
+        specialRequirement: 'indoor',
+        hint: 'Cross White Widow + Green Crack indoors'
+    },
+    'Girl Scout Cookies': {
+        color: [190, 160, 220],
+        growthRate: 0.82,
+        potency: 94,
+        price: 50,
+        flowering: 72,
+        difficulty: 'hard',
+        rarity: 'rare',
+        parents: ['OG Kush', 'Granddaddy Purple'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Cross OG Kush + Granddaddy Purple'
+    },
+    'Jack Herer': {
+        color: [160, 240, 130],
+        growthRate: 0.9,
+        potency: 86,
+        price: 42,
+        flowering: 68,
+        difficulty: 'medium',
+        rarity: 'rare',
+        parents: ['Northern Lights', 'Green Crack'],
+        unlocked: false,
+        leafShape: 'narrow',
+        budDensity: 'medium',
+        specialRequirement: null,
+        hint: 'Cross Northern Lights + Green Crack'
+    },
+    'AK-47': {
+        color: [200, 240, 180],
+        growthRate: 0.92,
+        potency: 90,
+        price: 48,
+        flowering: 66,
+        difficulty: 'medium',
+        rarity: 'rare',
+        parents: ['Sour Diesel', 'White Widow'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'medium',
+        specialRequirement: null,
+        hint: 'Cross Sour Diesel + White Widow'
+    },
+
+    // === TIER 3: Expert Level ===
+    'Gorilla Glue #4': {
+        color: [130, 200, 120],
+        growthRate: 0.78,
+        potency: 96,
+        price: 60,
+        flowering: 75,
+        difficulty: 'hard',
+        rarity: 'epic',
+        parents: ['Girl Scout Cookies', 'OG Kush'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'very dense',
+        specialRequirement: null,
+        hint: 'Cross Girl Scout Cookies + OG Kush'
+    },
+    'Gelato': {
+        color: [220, 180, 255],
+        growthRate: 0.8,
+        potency: 95,
+        price: 58,
+        flowering: 70,
+        difficulty: 'hard',
+        rarity: 'epic',
+        parents: ['Girl Scout Cookies', 'Blue Dream'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Cross Girl Scout Cookies + Blue Dream'
+    },
+    'Zkittlez': {
+        color: [255, 150, 200],
+        growthRate: 0.83,
+        potency: 93,
+        price: 55,
+        flowering: 68,
+        difficulty: 'hard',
+        rarity: 'epic',
+        parents: ['Granddaddy Purple', 'Blue Dream'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Cross Granddaddy Purple + Blue Dream'
+    },
+    'Wedding Cake': {
+        color: [240, 220, 255],
+        growthRate: 0.85,
+        potency: 92,
+        price: 56,
+        flowering: 69,
+        difficulty: 'hard',
+        rarity: 'epic',
+        parents: ['Girl Scout Cookies', 'White Widow'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'very dense',
+        specialRequirement: 'indoor',
+        hint: 'Cross Girl Scout Cookies + White Widow indoors'
+    },
+
+    // === SPECIAL STRAINS (Unique requirements) ===
+    'Alaskan Ice': {
+        color: [180, 230, 255],
+        growthRate: 0.7,
+        potency: 88,
+        price: 65,
+        flowering: 80,
+        difficulty: 'expert',
+        rarity: 'epic',
+        parents: ['White Widow', 'Blue Dream'],
+        unlocked: false,
+        leafShape: 'narrow',
+        budDensity: 'medium',
+        specialRequirement: 'frost',
+        hint: 'Cross White Widow + Blue Dream, harvest during frost'
+    },
+    'Durban Poison': {
+        color: [120, 255, 150],
+        growthRate: 1.05,
+        potency: 84,
+        price: 38,
+        flowering: 62,
+        difficulty: 'medium',
+        rarity: 'rare',
+        parents: ['Sour Diesel', 'Green Crack'],
+        unlocked: false,
+        leafShape: 'narrow',
+        budDensity: 'loose',
+        specialRequirement: 'outdoor',
+        hint: 'Cross Sour Diesel + Green Crack outdoors'
+    },
+    'Chemdog': {
+        color: [170, 220, 150],
+        growthRate: 0.87,
+        potency: 91,
+        price: 52,
+        flowering: 71,
+        difficulty: 'hard',
+        rarity: 'rare',
+        parents: ['OG Kush', 'Sour Diesel'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Cross OG Kush + Sour Diesel'
+    },
+    'Strawberry Cough': {
+        color: [255, 180, 180],
+        growthRate: 0.9,
+        potency: 82,
+        price: 44,
+        flowering: 64,
+        difficulty: 'medium',
+        rarity: 'rare',
+        parents: ['Green Crack', 'Blue Dream'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'medium',
+        specialRequirement: null,
+        hint: 'Cross Green Crack + Blue Dream'
+    },
+
+    // === TIER 4: Master Crosses ===
+    'Runtz': {
+        color: [255, 200, 255],
+        growthRate: 0.81,
+        potency: 97,
+        price: 70,
+        flowering: 73,
+        difficulty: 'expert',
+        rarity: 'legendary',
+        parents: ['Zkittlez', 'Gelato'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'very dense',
+        specialRequirement: 'indoor',
+        hint: 'Cross Zkittlez + Gelato indoors with perfect conditions'
+    },
+    'Sunset Sherbet': {
+        color: [255, 170, 150],
+        growthRate: 0.79,
+        potency: 94,
+        price: 62,
+        flowering: 71,
+        difficulty: 'hard',
+        rarity: 'epic',
+        parents: ['Girl Scout Cookies', 'Zkittlez'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Cross Girl Scout Cookies + Zkittlez'
+    },
+    'Pineapple Express': {
+        color: [255, 240, 100],
+        growthRate: 0.93,
+        potency: 87,
+        price: 46,
+        flowering: 66,
+        difficulty: 'medium',
+        rarity: 'rare',
+        parents: ['Jack Herer', 'Green Crack'],
+        unlocked: false,
+        leafShape: 'narrow',
+        budDensity: 'medium',
+        specialRequirement: 'outdoor',
+        hint: 'Cross Jack Herer + Green Crack outdoors'
+    },
+    'Tangie': {
+        color: [255, 200, 100],
+        growthRate: 0.88,
+        potency: 85,
+        price: 43,
+        flowering: 67,
+        difficulty: 'medium',
+        rarity: 'rare',
+        parents: ['Sour Diesel', 'Jack Herer'],
+        unlocked: false,
+        leafShape: 'narrow',
+        budDensity: 'loose',
+        specialRequirement: null,
+        hint: 'Cross Sour Diesel + Jack Herer'
+    },
+    'Do-Si-Dos': {
+        color: [210, 180, 240],
+        growthRate: 0.82,
+        potency: 93,
+        price: 57,
+        flowering: 70,
+        difficulty: 'hard',
+        rarity: 'epic',
+        parents: ['Girl Scout Cookies', 'OG Kush'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'very dense',
+        specialRequirement: null,
+        hint: 'Cross Girl Scout Cookies + OG Kush'
+    },
+    'MAC (Miracle Alien Cookies)': {
+        color: [200, 220, 255],
+        growthRate: 0.77,
+        potency: 96,
+        price: 68,
+        flowering: 74,
+        difficulty: 'expert',
+        rarity: 'legendary',
+        parents: ['Wedding Cake', 'Gorilla Glue #4'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'very dense',
+        specialRequirement: 'indoor',
+        hint: 'Cross Wedding Cake + Gorilla Glue #4 indoors'
+    },
+    'Mimosa': {
+        color: [255, 220, 150],
+        growthRate: 0.84,
+        potency: 91,
+        price: 54,
+        flowering: 68,
+        difficulty: 'hard',
+        rarity: 'epic',
+        parents: ['Tangie', 'Purple Haze'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'medium',
+        specialRequirement: null,
+        hint: 'Cross Tangie + Purple Haze'
+    },
+    'Gelatti': {
+        color: [230, 190, 255],
+        growthRate: 0.8,
+        potency: 95,
+        price: 64,
+        flowering: 72,
+        difficulty: 'expert',
+        rarity: 'epic',
+        parents: ['Gelato', 'Do-Si-Dos'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'very dense',
+        specialRequirement: null,
+        hint: 'Cross Gelato + Do-Si-Dos'
+    },
+
+    // === ULTRA RARE (Legendary Tier) ===
+    'Godfather OG': {
+        color: [160, 200, 140],
+        growthRate: 0.75,
+        potency: 98,
+        price: 80,
+        flowering: 78,
+        difficulty: 'expert',
+        rarity: 'legendary',
+        parents: ['OG Kush', 'Chemdog'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'very dense',
+        specialRequirement: 'indoor',
+        hint: 'Cross OG Kush + Chemdog indoors with expert care'
+    },
+    'Bruce Banner': {
+        color: [140, 255, 120],
+        growthRate: 0.95,
+        potency: 99,
+        price: 85,
+        flowering: 69,
+        difficulty: 'expert',
+        rarity: 'legendary',
+        parents: ['OG Kush', 'Strawberry Cough'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'very dense',
+        specialRequirement: null,
+        hint: 'Cross OG Kush + Strawberry Cough with high nutrients'
+    },
+    'White Truffle': {
+        color: [245, 240, 255],
+        growthRate: 0.72,
+        potency: 97,
+        price: 90,
+        flowering: 76,
+        difficulty: 'expert',
+        rarity: 'legendary',
+        parents: ['Gorilla Glue #4', 'Wedding Cake'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'very dense',
+        specialRequirement: 'frost',
+        hint: 'Cross Gorilla Glue #4 + Wedding Cake, harvest in frost'
+    },
+    'Forbidden Fruit': {
+        color: [200, 100, 180],
+        growthRate: 0.78,
+        potency: 94,
+        price: 66,
+        flowering: 72,
+        difficulty: 'expert',
+        rarity: 'epic',
+        parents: ['Granddaddy Purple', 'Zkittlez'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Cross Granddaddy Purple + Zkittlez'
+    },
+    'Biscotti': {
+        color: [210, 200, 230],
+        growthRate: 0.83,
+        potency: 93,
+        price: 61,
+        flowering: 70,
+        difficulty: 'hard',
+        rarity: 'epic',
+        parents: ['Gelato', 'Girl Scout Cookies'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'very dense',
+        specialRequirement: null,
+        hint: 'Cross Gelato + Girl Scout Cookies'
+    },
+    'London Pound Cake': {
+        color: [240, 210, 255],
+        growthRate: 0.81,
+        potency: 96,
+        price: 72,
+        flowering: 73,
+        difficulty: 'expert',
+        rarity: 'legendary',
+        parents: ['Sunset Sherbet', 'Wedding Cake'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'very dense',
+        specialRequirement: 'indoor',
+        hint: 'Cross Sunset Sherbet + Wedding Cake indoors'
+    },
+    'Apple Fritter': {
+        color: [220, 180, 160],
+        growthRate: 0.82,
+        potency: 92,
+        price: 59,
+        flowering: 71,
+        difficulty: 'hard',
+        rarity: 'epic',
+        parents: ['Do-Si-Dos', 'Sour Diesel'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Cross Do-Si-Dos + Sour Diesel'
+    },
+    'Ice Cream Cake': {
+        color: [230, 220, 245],
+        growthRate: 0.79,
+        potency: 95,
+        price: 67,
+        flowering: 72,
+        difficulty: 'expert',
+        rarity: 'epic',
+        parents: ['Wedding Cake', 'Gelato'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'very dense',
+        specialRequirement: 'indoor',
+        hint: 'Cross Wedding Cake + Gelato indoors'
+    },
+    'Pink Rozay': {
+        color: [255, 180, 220],
+        growthRate: 0.8,
+        potency: 94,
+        price: 63,
+        flowering: 71,
+        difficulty: 'hard',
+        rarity: 'epic',
+        parents: ['Zkittlez', 'Sunset Sherbet'],
+        unlocked: false,
+        leafShape: 'medium',
+        budDensity: 'dense',
+        specialRequirement: null,
+        hint: 'Cross Zkittlez + Sunset Sherbet'
+    },
+
+    // === THE ULTIMATE STRAIN ===
+    'CANNA GOLD': {
+        color: [255, 215, 0],
+        growthRate: 0.65,
+        potency: 100,
+        price: 150,
+        flowering: 90,
+        difficulty: 'master',
+        rarity: 'mythic',
+        parents: ['Runtz', 'White Truffle'],
+        unlocked: false,
+        leafShape: 'wide',
+        budDensity: 'crystalline',
+        specialRequirement: 'perfect',
+        hint: 'The ultimate strain. Cross Runtz + White Truffle under perfect conditions (100% health, indoor, frost harvest)'
     }
 };
 
-let availableStrains = Object.keys(strainDatabase);
+let availableStrains = Object.keys(strainDatabase).filter(s => strainDatabase[s].unlocked);
+let unlockedStrains = ['Northern Lights', 'Sour Diesel', 'Purple Haze']; // Track what player has unlocked
 let selectedStrain = null;
 let growLocation = null; // 'indoor' or 'outdoor'
+let strainListPage = 0; // For pagination in strain list menu
 
 // === UI ELEMENTS ===
 let buttons = [];
@@ -117,12 +674,19 @@ class Plant {
     generateLeaves() {
         this.leaves = [];
         let numLeaves = floor(this.height / 10) + 2;
+        let leafShape = strainDatabase[this.strain].leafShape;
+
+        // Leaf characteristics based on strain
+        let leafWidthMultiplier = leafShape === 'wide' ? 1.3 : leafShape === 'narrow' ? 0.7 : 1.0;
+        let leafSizeBase = leafShape === 'wide' ? 12 : leafShape === 'narrow' ? 8 : 10;
+
         for (let i = 0; i < numLeaves; i++) {
             this.leaves.push({
-                x: random(-this.width, this.width),
+                x: random(-this.width * leafWidthMultiplier, this.width * leafWidthMultiplier),
                 y: -this.height * (i / numLeaves),
-                size: random(8, 15),
-                angle: random(-PI/4, PI/4)
+                size: random(leafSizeBase, leafSizeBase + 5),
+                angle: random(-PI/4, PI/4),
+                shape: leafShape
             });
         }
     }
@@ -145,14 +709,25 @@ class Plant {
             if (floor(this.age) % 100 === 0) this.generateLeaves();
         }
 
-        // Generate buds during flowering - slower
-        if (this.stage === 'flowering' && this.gender === 'female' && this.buds.length < 12) {
-            if (floor(this.age) % 100 === 0) {
+        // Generate buds during flowering - slower, density varies by strain
+        let budDensity = strainDatabase[this.strain].budDensity;
+        let maxBuds = budDensity === 'very dense' || budDensity === 'crystalline' ? 16 :
+                     budDensity === 'dense' ? 12 :
+                     budDensity === 'loose' ? 8 : 10; // medium
+
+        if (this.stage === 'flowering' && this.gender === 'female' && this.buds.length < maxBuds) {
+            let budGenRate = budDensity === 'very dense' || budDensity === 'crystalline' ? 80 :
+                           budDensity === 'dense' ? 100 : 120; // Dense strains bud faster
+
+            if (floor(this.age) % budGenRate === 0) {
+                let budSizeBase = budDensity === 'very dense' || budDensity === 'crystalline' ? 10 :
+                                 budDensity === 'dense' ? 8 : 6;
                 this.buds.push({
                     x: random(-this.width * 0.5, this.width * 0.5),
                     y: random(-this.height * 0.8, -this.height * 0.2),
-                    size: random(6, 12),
-                    crystals: []
+                    size: random(budSizeBase, budSizeBase + 4),
+                    crystals: [],
+                    density: budDensity
                 });
             }
         }
@@ -1015,7 +1590,7 @@ function draw() {
     // Only update game time if not paused
     if (!gamePaused) {
         gameTime += timeSpeed;
-        dayNightCycle += 0.01; // Fixed and balanced day/night cycle - full cycle every ~628 frames
+        dayNightCycle += 0.006; // Slower, more relaxing day/night cycle - full cycle every ~1047 frames (about 17.5 seconds at 60fps)
 
         // Update weather system
         if (growLocation === 'outdoor') {
@@ -1042,10 +1617,12 @@ function draw() {
         drawPauseMenu();
     } else if (gameState === 'settings') {
         drawSettingsMenu();
-    } else if (gameState === 'harvest') {
-        drawHarvestScreen();
+    } else if (gameState === 'strainList') {
+        drawStrainListMenu();
     } else if (gameState === 'hybridization') {
         drawHybridizationScreen();
+    } else if (gameState === 'seedSelect') {
+        drawSeedSelectScreen();
     }
 
     displayNotifications();
@@ -1299,7 +1876,8 @@ function drawStrainSelect() {
 
     buttons = [];
 
-    let strains = availableStrains.slice(0, 3);
+    // Always show the 3 starter strains on first selection
+    let strains = ['Northern Lights', 'Sour Diesel', 'Purple Haze'];
     for (let i = 0; i < strains.length; i++) {
         let strain = strains[i];
         let data = strainDatabase[strain];
@@ -2322,7 +2900,7 @@ function harvestPlant(plant) {
         let harvestedAmount = plant.yield;
         let quality = floor(plant.health);
         let pricePerGram = floor(strainDatabase[plant.strain].price * (quality / 100));
-        
+
         player.harvestedWeed.push({
             strain: plant.strain,
             amount: harvestedAmount,
@@ -2331,24 +2909,35 @@ function harvestPlant(plant) {
         });
 
         addNotification(`✂️ Harvested ${harvestedAmount}g of ${plant.strain}!`, 'success');
-        
+
+        // Collect 1-2 seeds from healthy female plants (70%+ health)
+        if (plant.health >= 70) {
+            let seedCount = floor(random(1, 3));
+            for (let i = 0; i < seedCount; i++) {
+                player.inventory.seeds.push({
+                    strain: plant.strain,
+                    gender: 'female',
+                    quality: plant.health / 100
+                });
+            }
+            addNotification(`🌰 Also collected ${seedCount} ${plant.strain} seed(s)!`, 'success');
+        }
+
         if (!player.completedFirstHarvest) {
             player.completedFirstHarvest = true;
-            // Unlock other two strains
-            for (let strain of Object.keys(strainDatabase)) {
-                if (strain !== selectedStrain) {
-                    player.inventory.seeds.push({ strain: strain, gender: null });
-                }
-            }
-            addNotification('🎉 New strains unlocked!', 'success');
+            addNotification('🎉 First harvest complete! Try cross-breeding to unlock new strains!', 'success');
         }
     } else {
-        // Male plant - harvest seeds
-        let seedCount = floor(random(3, 8));
+        // Male plant - harvest many seeds
+        let seedCount = floor(random(5, 12));
         for (let i = 0; i < seedCount; i++) {
-            player.inventory.seeds.push({ strain: plant.strain, gender: null });
+            player.inventory.seeds.push({
+                strain: plant.strain,
+                gender: 'male',
+                quality: plant.health / 100
+            });
         }
-        addNotification(`🌰 Collected ${seedCount} seeds from male plant!`, 'success');
+        addNotification(`🌰 Collected ${seedCount} ${plant.strain} seeds from male plant!`, 'success');
     }
 
     // Remove plant
@@ -2357,18 +2946,123 @@ function harvestPlant(plant) {
 }
 
 function plantNewSeed() {
-    if (player.inventory.seeds.length === 0) return;
-    
-    // Simple seed selection (first available)
-    let seed = player.inventory.seeds.pop();
-    
-    // Position new plant
-    let spacing = width / (maxPlants + 1);
-    let plantX = spacing * (plants.length + 1);
-    let plantY = height / 2 + 50;
-    
-    plants.push(new Plant(seed.strain, growLocation, plantX, plantY));
-    addNotification(`🌱 Planted ${seed.strain} seed!`, 'success');
+    if (player.inventory.seeds.length === 0) {
+        addNotification('❌ No seeds available!', 'error');
+        return;
+    }
+
+    // Go to seed selection screen
+    gameState = 'seedSelect';
+}
+
+// === SEED SELECTION SCREEN ===
+function drawSeedSelectScreen() {
+    background(30, 35, 30);
+
+    // Title
+    fill(150, 255, 150);
+    textFont('Carter One');
+    textAlign(CENTER);
+    textSize(28);
+    text('🌰 SELECT SEED TO PLANT', width / 2, 30);
+
+    // Seed count
+    fill(200);
+    textSize(14);
+    text(`Seeds Available: ${player.inventory.seeds.length}`, width / 2, 60);
+
+    buttons = [];
+
+    // Group seeds by strain
+    let seedsByStrain = {};
+    for (let seed of player.inventory.seeds) {
+        if (!seedsByStrain[seed.strain]) {
+            seedsByStrain[seed.strain] = [];
+        }
+        seedsByStrain[seed.strain].push(seed);
+    }
+
+    // Display seed cards
+    let strainNames = Object.keys(seedsByStrain);
+    let cardW = min(160, (width - 60) / 4);
+    let cardH = 200;
+    let cols = floor((width - 40) / (cardW + 10));
+    let spacing = 10;
+    let startY = 90;
+    let x = (width - (min(cols, strainNames.length) * cardW + (min(cols, strainNames.length) - 1) * spacing)) / 2;
+    let y = startY;
+    let col = 0;
+
+    for (let strainName of strainNames) {
+        let seeds = seedsByStrain[strainName];
+        let strain = strainDatabase[strainName];
+
+        // Card background
+        fill(40, 50, 40);
+        stroke(strain.color[0], strain.color[1], strain.color[2]);
+        strokeWeight(2);
+        rect(x, y, cardW, cardH, 8);
+
+        // Strain name
+        fill(255);
+        textAlign(CENTER);
+        textSize(13);
+        text(strainName, x + cardW / 2, y + 20);
+
+        // Color preview
+        fill(strain.color[0], strain.color[1], strain.color[2]);
+        noStroke();
+        ellipse(x + cardW / 2, y + 55, 35, 35);
+
+        // Seed count
+        fill(200);
+        textSize(11);
+        text(`Seeds: ${seeds.length}`, x + cardW / 2, y + 90);
+
+        // Stats
+        textAlign(LEFT);
+        textSize(9);
+        let infoY = y + 110;
+        text(`Potency: ${strain.potency}%`, x + 10, infoY);
+        text(`Difficulty: ${strain.difficulty}`, x + 10, infoY + 14);
+        text(`Growth: ${strain.growthRate}x`, x + 10, infoY + 28);
+
+        // Plant button
+        buttons.push(new Button(x + 10, y + cardH - 40, cardW - 20, 32, '🌱 PLANT', () => {
+            playButtonSFX();
+
+            // Find and remove one seed of this strain
+            let seedIndex = player.inventory.seeds.findIndex(s => s.strain === strainName);
+            if (seedIndex !== -1) {
+                let seed = player.inventory.seeds.splice(seedIndex, 1)[0];
+
+                // Position new plant
+                let spacing = width / (maxPlants + 1);
+                let plantX = spacing * (plants.length + 1);
+                let plantY = height / 2 + 50;
+
+                plants.push(new Plant(seed.strain, growLocation, plantX, plantY));
+                addNotification(`🌱 Planted ${seed.strain} seed!`, 'success');
+
+                gameState = 'growing';
+            }
+        }, [76, 175, 80]));
+
+        col++;
+        if (col >= cols) {
+            col = 0;
+            x = (width - (min(cols, strainNames.length) * cardW + (min(cols, strainNames.length) - 1) * spacing)) / 2;
+            y += cardH + spacing;
+        } else {
+            x += cardW + spacing;
+        }
+    }
+
+    // Cancel button
+    buttons.push(new Button(width / 2 - 80, height - 60, 160, 45, '⬅️ CANCEL', () => {
+        playButtonSFX();
+        gameState = 'growing';
+    }, [150, 100, 100]));
 }
 
 // === SHOP ===
@@ -2541,7 +3235,7 @@ function drawPauseMenu() {
 
     // Pause menu panel
     let panelW = min(400, width * 0.9);
-    let panelH = 400;
+    let panelH = 500;
     let panelX = (width - panelW) / 2;
     let panelY = (height - panelH) / 2;
 
@@ -2566,10 +3260,10 @@ function drawPauseMenu() {
     // Buttons
     buttons = [];
     let btnW = panelW - 80;
-    let btnH = 50;
+    let btnH = 48;
     let btnX = panelX + 40;
-    let btnY = panelY + 100;
-    let btnSpacing = 65;
+    let btnY = panelY + 90;
+    let btnSpacing = 60;
 
     // Resume button
     buttons.push(new Button(btnX, btnY, btnW, btnH, '▶️ RESUME', () => {
@@ -2585,15 +3279,30 @@ function drawPauseMenu() {
         saveGame();
     }, [100, 150, 220]));
 
+    // Strain List button
+    buttons.push(new Button(btnX, btnY + btnSpacing * 2, btnW, btnH, '🧬 STRAIN LIST', () => {
+        playButtonSFX();
+        previousGameState = 'paused';
+        gameState = 'strainList';
+    }, [180, 120, 220]));
+
+    // Hybridization button
+    buttons.push(new Button(btnX, btnY + btnSpacing * 3, btnW, btnH, '🔬 HYBRIDIZE', () => {
+        playButtonSFX();
+        previousGameState = 'paused';
+        gameState = 'hybridization';
+        gamePaused = false; // Allow game to continue while in hybridization
+    }, [220, 100, 200]));
+
     // Settings button
-    buttons.push(new Button(btnX, btnY + btnSpacing * 2, btnW, btnH, '⚙️ SETTINGS', () => {
+    buttons.push(new Button(btnX, btnY + btnSpacing * 4, btnW, btnH, '⚙️ SETTINGS', () => {
         playButtonSFX();
         previousGameState = 'paused';
         gameState = 'settings';
     }, [150, 100, 200]));
 
     // Main Menu button
-    buttons.push(new Button(btnX, btnY + btnSpacing * 3, btnW, btnH, '🏠 MAIN MENU', () => {
+    buttons.push(new Button(btnX, btnY + btnSpacing * 5, btnW, btnH, '🏠 MAIN MENU', () => {
         playButtonSFX();
         if (confirm('Return to main menu? Make sure to save first!')) {
             gameState = 'titleScreen';
@@ -2745,6 +3454,368 @@ function drawSettingsMenu() {
             gameState = previousGameState || 'titleScreen';
         }
     }, [100, 100, 150]));
+}
+
+// === STRAIN LIST MENU ===
+function drawStrainListMenu() {
+    background(25, 30, 35);
+
+    // Title
+    fill(255, 215, 0);
+    textFont('Carter One');
+    textAlign(CENTER);
+    textSize(32);
+    text('🧬 STRAIN COLLECTION', width / 2, 30);
+
+    // Stats
+    let unlockedCount = player.unlockedStrains.length;
+    let totalCount = Object.keys(strainDatabase).length;
+    fill(150, 255, 150);
+    textSize(16);
+    text(`Unlocked: ${unlockedCount} / ${totalCount}`, width / 2, 70);
+
+    buttons = [];
+
+    // Strain grid
+    let startY = 110;
+    let cardW = min(180, (width - 60) / 4);
+    let cardH = 240;
+    let cols = floor((width - 40) / (cardW + 10));
+    let spacing = 10;
+
+    let strainsPerPage = cols * 3; // 3 rows
+    let totalPages = ceil(totalCount / strainsPerPage);
+    let startIdx = strainListPage * strainsPerPage;
+    let endIdx = min(startIdx + strainsPerPage, totalCount);
+
+    let allStrains = Object.keys(strainDatabase);
+    let x = (width - (cols * (cardW + spacing) - spacing)) / 2;
+    let y = startY;
+    let col = 0;
+
+    for (let i = startIdx; i < endIdx; i++) {
+        let strainName = allStrains[i];
+        let strain = strainDatabase[strainName];
+        let unlocked = player.unlockedStrains.includes(strainName);
+
+        // Card background
+        if (unlocked) {
+            fill(40, 60, 40);
+            stroke(80, 255, 100);
+        } else {
+            fill(30, 30, 35);
+            stroke(80, 80, 90);
+        }
+        strokeWeight(2);
+        rect(x, y, cardW, cardH, 8);
+
+        // Strain name
+        fill(255);
+        textAlign(CENTER);
+        textSize(12);
+        text(unlocked ? strainName : '???', x + cardW / 2, y + 20);
+
+        if (unlocked) {
+            // Color swatch
+            fill(strain.color[0], strain.color[1], strain.color[2]);
+            noStroke();
+            ellipse(x + cardW / 2, y + 60, 40, 40);
+
+            // Stats
+            fill(200);
+            textAlign(LEFT);
+            textSize(10);
+            let infoY = y + 95;
+            text(`Potency: ${strain.potency}%`, x + 10, infoY);
+            text(`Rarity: ${strain.rarity}`, x + 10, infoY + 16);
+            text(`Difficulty: ${strain.difficulty}`, x + 10, infoY + 32);
+            text(`Price: $${strain.price}/g`, x + 10, infoY + 48);
+
+            // Leaf shape indicator
+            let leafIcon = strain.leafShape === 'wide' ? '🍃' :
+                          strain.leafShape === 'narrow' ? '🌿' : '🌱';
+            fill(255);
+            textAlign(CENTER);
+            text(leafIcon, x + cardW / 2, infoY + 64);
+        } else {
+            // Locked icon
+            fill(100);
+            textAlign(CENTER);
+            textSize(40);
+            text('🔒', x + cardW / 2, y + 70);
+
+            // Hint
+            fill(180, 180, 200);
+            textSize(9);
+            textAlign(CENTER);
+            let hintText = strain.hint || 'Unlock by breeding';
+            // Wrap text
+            let words = hintText.split(' ');
+            let line = '';
+            let lineY = y + 120;
+            for (let word of words) {
+                let testLine = line + word + ' ';
+                if (textWidth(testLine) > cardW - 20 && line.length > 0) {
+                    text(line, x + cardW / 2, lineY);
+                    line = word + ' ';
+                    lineY += 12;
+                } else {
+                    line = testLine;
+                }
+            }
+            text(line, x + cardW / 2, lineY);
+        }
+
+        col++;
+        if (col >= cols) {
+            col = 0;
+            x = (width - (cols * (cardW + spacing) - spacing)) / 2;
+            y += cardH + spacing;
+        } else {
+            x += cardW + spacing;
+        }
+    }
+
+    // Pagination
+    if (totalPages > 1) {
+        textAlign(CENTER);
+        fill(255);
+        textSize(14);
+        text(`Page ${strainListPage + 1} / ${totalPages}`, width / 2, height - 100);
+
+        if (strainListPage > 0) {
+            buttons.push(new Button(width / 2 - 180, height - 120, 80, 35, '⬅️ PREV', () => {
+                playButtonSFX();
+                strainListPage--;
+            }, [100, 100, 150]));
+        }
+
+        if (strainListPage < totalPages - 1) {
+            buttons.push(new Button(width / 2 + 100, height - 120, 80, 35, 'NEXT ➡️', () => {
+                playButtonSFX();
+                strainListPage++;
+            }, [100, 100, 150]));
+        }
+    }
+
+    // Back button
+    buttons.push(new Button(width / 2 - 80, height - 60, 160, 45, '⬅️ BACK', () => {
+        playButtonSFX();
+        gameState = 'paused';
+    }, [100, 100, 150]));
+}
+
+// === HYBRIDIZATION SCREEN ===
+function drawHybridizationScreen() {
+    background(30, 25, 40);
+
+    // Title
+    fill(255, 180, 255);
+    textFont('Carter One');
+    textAlign(CENTER);
+    textSize(32);
+    text('🧬 HYBRIDIZATION LAB', width / 2, 30);
+
+    // Instructions
+    fill(200, 200, 255);
+    textSize(14);
+    text('Select two plants to cross-breed and create new strains!', width / 2, 65);
+
+    buttons = [];
+
+    // Filter only harvest-stage plants for breeding
+    let breedablePlants = plants.filter(p => p.stage === 'harvest');
+
+    if (breedablePlants.length < 2) {
+        fill(255, 150, 150);
+        textSize(18);
+        text('You need at least 2 plants at harvest stage to hybridize!', width / 2, height / 2);
+
+        buttons.push(new Button(width / 2 - 80, height - 80, 160, 45, '⬅️ BACK', () => {
+            playButtonSFX();
+            gameState = 'growing';
+        }, [100, 100, 150]));
+        return;
+    }
+
+    // Display plant selection
+    let cardW = min(220, (width - 60) / 3);
+    let cardH = 280;
+    let spacing = 20;
+    let startX = (width - (min(3, breedablePlants.length) * cardW + (min(3, breedablePlants.length) - 1) * spacing)) / 2;
+    let y = 110;
+
+    for (let i = 0; i < min(breedablePlants.length, 6); i++) {
+        let plant = breedablePlants[i];
+        let x = startX + (i % 3) * (cardW + spacing);
+        if (i >= 3) {
+            y = 110 + cardH + 20;
+            x = startX + (i % 3) * (cardW + spacing);
+        }
+
+        // Card background
+        let isParent1 = selectedParentPlant1 === plant;
+        let isParent2 = selectedParentPlant2 === plant;
+        let isSelected = isParent1 || isParent2;
+
+        if (isSelected) {
+            fill(60, 100, 60);
+            stroke(100, 255, 100);
+        } else {
+            fill(40, 40, 50);
+            stroke(100, 100, 120);
+        }
+        strokeWeight(isSelected ? 4 : 2);
+        rect(x, y, cardW, cardH, 10);
+
+        // Plant preview
+        fill(plant.baseColor[0], plant.baseColor[1], plant.baseColor[2]);
+        noStroke();
+        ellipse(x + cardW / 2, y + 60, 50, 50);
+
+        // Info
+        fill(255);
+        textAlign(CENTER);
+        textSize(14);
+        text(plant.strain, x + cardW / 2, y + 105);
+
+        fill(200);
+        textSize(11);
+        text(`${plant.gender === 'female' ? '♀' : '♂'} ${plant.gender}`, x + cardW / 2, y + 125);
+        text(`Health: ${floor(plant.health)}%`, x + cardW / 2, y + 145);
+        text(`Potency: ${floor(plant.potency)}%`, x + cardW / 2, y + 165);
+
+        // Selection indicator
+        if (isParent1) {
+            fill(100, 255, 100);
+            textSize(12);
+            text('PARENT 1 ✓', x + cardW / 2, y + 190);
+        } else if (isParent2) {
+            fill(255, 200, 100);
+            text('PARENT 2 ✓', x + cardW / 2, y + 190);
+        }
+
+        // Select button
+        buttons.push(new Button(x + 20, y + cardH - 50, cardW - 40, 35,
+            isSelected ? 'DESELECT' : 'SELECT', () => {
+            playButtonSFX();
+            if (isParent1) {
+                selectedParentPlant1 = null;
+            } else if (isParent2) {
+                selectedParentPlant2 = null;
+            } else if (!selectedParentPlant1) {
+                selectedParentPlant1 = plant;
+            } else if (!selectedParentPlant2) {
+                selectedParentPlant2 = plant;
+            } else {
+                addNotification('❌ Two parents already selected!', 'error');
+            }
+        }, isSelected ? [180, 100, 100] : [100, 150, 100]));
+    }
+
+    // Hybridize button
+    if (selectedParentPlant1 && selectedParentPlant2) {
+        let hybridY = height - 140;
+
+        // Show cross prediction
+        fill(255, 255, 100);
+        textSize(16);
+        text(`${selectedParentPlant1.strain} × ${selectedParentPlant2.strain}`, width / 2, hybridY - 20);
+
+        buttons.push(new Button(width / 2 - 100, hybridY, 200, 50, '🧬 CROSS BREED', () => {
+            playButtonSFX();
+            performHybridization(selectedParentPlant1, selectedParentPlant2);
+        }, [200, 100, 200]));
+    }
+
+    // Back button
+    buttons.push(new Button(width / 2 - 80, height - 70, 160, 45, '⬅️ BACK', () => {
+        playButtonSFX();
+        selectedParentPlant1 = null;
+        selectedParentPlant2 = null;
+        gameState = 'growing';
+    }, [100, 100, 150]));
+}
+
+// Perform hybridization
+function performHybridization(parent1, parent2) {
+    // Find matching strain in database
+    let newStrain = null;
+
+    for (let strainName in strainDatabase) {
+        let strain = strainDatabase[strainName];
+        if (strain.parents) {
+            // Check if parents match (order doesn't matter)
+            if ((strain.parents[0] === parent1.strain && strain.parents[1] === parent2.strain) ||
+                (strain.parents[0] === parent2.strain && strain.parents[1] === parent1.strain)) {
+
+                // Check special requirements
+                let reqMet = true;
+                if (strain.specialRequirement === 'indoor' && growLocation !== 'indoor') {
+                    addNotification('❌ This cross requires indoor growing!', 'error');
+                    reqMet = false;
+                }
+                if (strain.specialRequirement === 'outdoor' && growLocation !== 'outdoor') {
+                    addNotification('❌ This cross requires outdoor growing!', 'error');
+                    reqMet = false;
+                }
+                if (strain.specialRequirement === 'frost' && weather.current !== 'frost') {
+                    addNotification('❌ This cross requires frost conditions!', 'error');
+                    reqMet = false;
+                }
+                if (strain.specialRequirement === 'perfect') {
+                    if (parent1.health < 100 || parent2.health < 100) {
+                        addNotification('❌ Both parents must be at 100% health!', 'error');
+                        reqMet = false;
+                    }
+                    if (growLocation !== 'indoor') {
+                        addNotification('❌ Must be grown indoors!', 'error');
+                        reqMet = false;
+                    }
+                    if (weather.current !== 'frost') {
+                        addNotification('❌ Requires frost harvest!', 'error');
+                        reqMet = false;
+                    }
+                }
+
+                if (reqMet) {
+                    newStrain = strainName;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (newStrain) {
+        // Success! Unlock new strain
+        if (!player.unlockedStrains.includes(newStrain)) {
+            player.unlockedStrains.push(newStrain);
+            addNotification(`🎉 Unlocked new strain: ${newStrain}!`, 'success');
+        }
+
+        // Generate hybrid seeds
+        let seedCount = floor(random(2, 6));
+        let quality = (parent1.health + parent2.health) / 200; // Average quality
+
+        for (let i = 0; i < seedCount; i++) {
+            player.inventory.seeds.push({
+                strain: newStrain,
+                gender: null,
+                quality: quality
+            });
+        }
+
+        addNotification(`🌰 Created ${seedCount} ${newStrain} seeds!`, 'success');
+
+        // Remove parent plants
+        plants = plants.filter(p => p !== parent1 && p !== parent2);
+        selectedParentPlant1 = null;
+        selectedParentPlant2 = null;
+
+        gameState = 'growing';
+    } else {
+        addNotification('❌ No known strain from this cross! Try different combinations.', 'error');
+    }
 }
 
 // === MOUSE/TOUCH HANDLING ===
