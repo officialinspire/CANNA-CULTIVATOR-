@@ -548,7 +548,7 @@ class Plant {
 
         // Stage indicator with better styling
         fill(255, 255, 255, 230);
-        textFont('Baloo 2');
+        textFont('Permanent Marker');
         textAlign(CENTER);
         textSize(11);
         text(this.stage.toUpperCase(), 0, this.height + 40);
@@ -587,7 +587,7 @@ class Plant {
         return dist(mx, my, this.x, this.y) < this.width * 2;
     }
 
-    water(amount) {
+    addWater(amount) {
         this.water = min(100, this.water + amount);
         this.lastWatered = gameTime;
         addNotification(`💧 Watered ${this.strain}`, 'success');
@@ -653,7 +653,7 @@ class Button {
         }
 
         // Button text
-        textFont('Fredoka');
+        textFont('Carter One');
         fill(255);
         noStroke();
         textAlign(CENTER, CENTER);
@@ -714,7 +714,7 @@ function displayNotifications() {
         rect(xOffset, yOffset, notifWidth, 38, 8);
 
         // Notification text - left aligned
-        textFont('Baloo 2');
+        textFont('Permanent Marker');
         fill(255, notif.alpha);
         noStroke();
         textAlign(LEFT, CENTER);
@@ -779,24 +779,24 @@ function drawTitleScreen() {
     }
 
     // Title with glow effect
-    textFont('Righteous');
+    textFont('Bangers');
     
     // Glow layers
     fill(100, 255, 100, 50);
     textAlign(CENTER, CENTER);
-    textSize(min(width * 0.13, 66));
-    text('🌿 GROW QUEST 🌿', width / 2 + 3, height / 3 + 3);
-    
+    textSize(min(width * 0.115, 58));
+    text('🌿 CANNA-CULTIVATOR! 🌿', width / 2 + 3, height / 3 + 3);
+
     fill(150, 255, 150, 100);
-    textSize(min(width * 0.13, 66));
-    text('🌿 GROW QUEST 🌿', width / 2 + 2, height / 3 + 2);
+    textSize(min(width * 0.115, 58));
+    text('🌿 CANNA-CULTIVATOR! 🌿', width / 2 + 2, height / 3 + 2);
     
     // Main title
     fill(220, 255, 220);
-    textSize(min(width * 0.13, 66));
-    text('🌿 GROW QUEST 🌿', width / 2, height / 3);
+    textSize(min(width * 0.115, 58));
+    text('🌿 CANNA-CULTIVATOR! 🌿', width / 2, height / 3);
 
-    textFont('Fredoka');
+    textFont('Carter One');
     textSize(min(width * 0.045, 22));
     fill(180, 255, 180);
     text('Cannabis Cultivation Simulator', width / 2, height / 3 + 50);
@@ -856,13 +856,13 @@ function drawStrainSelect() {
     push();
     
     // Title with better font - perfectly centered
-    textFont('Righteous');
+    textFont('Bangers');
     fill(220, 255, 220);
     textAlign(CENTER);
     textSize(32);
     text('Choose Your Starter Strain', width / 2, 32);
 
-    textFont('Fredoka');
+    textFont('Carter One');
     textSize(14);
     fill(180, 255, 180);
     text('Select your first cannabis seed (Like choosing your starter Pokemon!)', width / 2, 58);
@@ -905,7 +905,7 @@ function drawStrainSelect() {
         rect(x + 5, y + 5, cardWidth - 10, cardHeight - 10, 10);
 
         // Strain name with custom font
-        textFont('Fredoka');
+        textFont('Carter One');
         fill(data.color[0] + 30, data.color[1] + 30, data.color[2] + 30);
         noStroke();
         textAlign(CENTER);
@@ -913,7 +913,7 @@ function drawStrainSelect() {
         text(strain, x + cardWidth / 2, y + 26);
 
         // Stats with better formatting
-        textFont('Baloo 2');
+        textFont('Permanent Marker');
         textSize(13);
         fill(200, 255, 200);
         textAlign(LEFT);
@@ -989,6 +989,7 @@ function selectStrain(strain) {
         strain: strain,
         gender: null // Unknown until planted
     });
+    notifications = []; // Clear notifications to prevent overlap
     gameState = 'locationSelect';
     addNotification(`🌱 Selected ${strain}!`, 'success');
 }
@@ -997,7 +998,7 @@ function selectStrain(strain) {
 function drawLocationSelect() {
     push();
     
-    textFont('Righteous');
+    textFont('Bangers');
     fill(220, 255, 220);
     textAlign(CENTER);
     textSize(34);
@@ -1029,13 +1030,13 @@ function drawLocationSelect() {
     strokeWeight(3);
     rect(indoorX, indoorY, cardWidth, cardHeight, 12);
 
-    textFont('Fredoka');
+    textFont('Carter One');
     fill(180, 180, 255);
     noStroke();
     textSize(28);
     text('🏠 INDOOR', indoorX + cardWidth / 2, indoorY + 35);
 
-    textFont('Baloo 2');
+    textFont('Permanent Marker');
     textSize(15);
     fill(200, 200, 255);
     textAlign(LEFT);
@@ -1075,13 +1076,13 @@ function drawLocationSelect() {
     strokeWeight(3);
     rect(outdoorX, outdoorY, cardWidth, cardHeight, 12);
 
-    textFont('Fredoka');
+    textFont('Carter One');
     fill(180, 255, 180);
     noStroke();
     textSize(28);
     text('🌞 OUTDOOR', outdoorX + cardWidth / 2, outdoorY + 35);
 
-    textFont('Baloo 2');
+    textFont('Permanent Marker');
     textSize(15);
     fill(200, 255, 200);
     textAlign(LEFT);
@@ -1125,50 +1126,72 @@ let selectedPlant = null;
 function drawGrowingScreen() {
     // Background gradient based on location
     if (growLocation === 'indoor') {
-        // Indoor grow tent - enhanced graphics
-        // Dark background with subtle color variation
-        let bgColor = lerpColor(color(25, 28, 35), color(35, 38, 45), sin(gameTime * 0.01) * 0.5 + 0.5);
+        // Indoor warehouse grow facility - professional commercial setup
+        // Dark background for warehouse atmosphere
+        let bgColor = lerpColor(color(30, 32, 35), color(40, 42, 45), sin(gameTime * 0.01) * 0.5 + 0.5);
         background(bgColor);
 
-        // Back wall - grow tent reflective material
+        // Back wall - industrial warehouse concrete/cinder block
         noStroke();
-        fill(45, 48, 58);
-        rect(width * 0.1, 0, width * 0.8, height - 140);
+        fill(60, 62, 65);
+        rect(0, 0, width, height - 120);
 
-        // Reflective mylar effect on walls
-        fill(55, 58, 68, 180);
-        for (let i = 0; i < 8; i++) {
-            let x = width * 0.1 + i * (width * 0.8 / 8);
-            quad(x, 0, x + width * 0.1, 0, x + width * 0.1, height - 140, x, height - 140);
-        }
-
-        // Side walls with depth
-        fill(38, 41, 50);
-        triangle(0, 0, width * 0.1, 0, width * 0.1, height - 140);
-        triangle(0, 0, 0, height - 140, width * 0.1, height - 140);
-
-        fill(38, 41, 50);
-        triangle(width, 0, width * 0.9, 0, width * 0.9, height - 140);
-        triangle(width, 0, width, height - 140, width * 0.9, height - 140);
-
-        // Floor - concrete/tent floor
-        fill(48, 51, 58);
-        rect(0, height - 140, width, 140);
-
-        // Floor texture with tiles
-        stroke(35, 38, 45);
+        // Cinder block texture pattern on back wall
+        stroke(45, 47, 50);
         strokeWeight(2);
-        for (let x = 0; x < width; x += 60) {
-            line(x, height - 140, x, height);
+        let blockWidth = 80;
+        let blockHeight = 40;
+        for (let y = 0; y < height - 120; y += blockHeight) {
+            for (let x = 0; x < width; x += blockWidth) {
+                let offsetX = (y / blockHeight) % 2 === 0 ? 0 : blockWidth / 2;
+                rect(x + offsetX, y, blockWidth, blockHeight);
+            }
         }
-        for (let y = height - 140; y < height; y += 60) {
+
+        // Industrial warehouse shelving/racks on sides
+        noStroke();
+        // Left rack structure
+        fill(70, 70, 75);
+        rect(10, height - 400, 15, 280); // Vertical support
+        rect(10, height - 400, 80, 12); // Top shelf
+        rect(10, height - 300, 80, 12); // Mid shelf
+        rect(10, height - 200, 80, 12); // Bottom shelf
+
+        // Right rack structure
+        rect(width - 25, height - 400, 15, 280); // Vertical support
+        rect(width - 90, height - 400, 80, 12); // Top shelf
+        rect(width - 90, height - 300, 80, 12); // Mid shelf
+        rect(width - 90, height - 200, 80, 12); // Bottom shelf
+
+        // Metal rack highlights
+        fill(90, 90, 95);
+        rect(12, height - 402, 11, 3); // Left highlights
+        rect(width - 23, height - 402, 11, 3); // Right highlights
+
+        // Floor - polished concrete warehouse floor
+        fill(55, 57, 60);
+        rect(0, height - 120, width, 120);
+
+        // Concrete floor expansion joints
+        stroke(40, 42, 45);
+        strokeWeight(3);
+        for (let x = 0; x < width; x += 120) {
+            line(x, height - 120, x, height);
+        }
+        for (let y = height - 120; y < height; y += 100) {
             line(0, y, width, y);
         }
 
-        // Floor gradient for depth
+        // Floor shine/reflection effect
         noStroke();
-        fill(28, 31, 38, 100);
-        rect(0, height - 140, width, 40);
+        fill(70, 72, 75, 60);
+        ellipse(width / 2, height - 80, width * 0.6, 40);
+
+        // Warehouse pipes and ductwork along ceiling
+        fill(80, 82, 85);
+        rect(width * 0.15, 15, width * 0.7, 10, 5); // Main duct
+        rect(width * 0.25, 15, 8, 40); // Vertical pipe
+        rect(width * 0.75, 15, 8, 40); // Vertical pipe
 
         // Professional LED grow lights with realistic glow
         noStroke();
@@ -1367,14 +1390,26 @@ function drawGrowingScreen() {
         }
         pop();
 
-        // Enhanced ground layers with better texture
+        // Farm field ground layers with agricultural features
         noStroke();
 
         // Rich topsoil layer
         fill(101, 67, 33);
         rect(0, height - 95, width, 95);
 
-        // Soil texture variation
+        // Plowed field furrows/crop rows
+        stroke(80, 50, 25);
+        strokeWeight(2);
+        let furrowSpacing = 40;
+        for (let i = 0; i < width; i += furrowSpacing) {
+            // Perspective furrows that get closer together in distance
+            let startX = i;
+            let endX = map(i, 0, width, width * 0.3, width * 0.7);
+            line(startX, height - 95, endX, height - 140);
+        }
+
+        // Soil texture variation between rows
+        noStroke();
         for (let i = 0; i < 30; i++) {
             fill(random(80, 120), random(50, 80), random(25, 45), random(30, 80));
             let sx = random(width);
@@ -1382,20 +1417,20 @@ function drawGrowingScreen() {
             ellipse(sx, sy, random(5, 15), random(3, 8));
         }
 
-        // Lush grass layer - varied green tones
+        // Farm field edge with grass border
         let grassBaseColor = lerpColor(color(65, 150, 30), color(85, 180, 40), timeOfDay);
         fill(grassBaseColor);
         rect(0, height - 110, width, 15);
 
-        // Grass texture patches
+        // Grass texture patches along edge
         fill(red(grassBaseColor) - 10, green(grassBaseColor) - 10, blue(grassBaseColor) - 10, 100);
         for (let i = 0; i < 15; i++) {
             let gx = random(width);
             ellipse(gx, height - 105, random(20, 50), random(8, 12));
         }
 
-        // Dense grass blades with variety
-        for (let i = 0; i < width; i += 4) {
+        // Grass/weeds growing along field edge
+        for (let i = 0; i < width; i += 8) {
             let bladeHeight = random(10, 18);
             let bladeColor = lerpColor(
                 color(50, 130, 25),
@@ -1416,6 +1451,18 @@ function drawGrowingScreen() {
             vertex(i + bendX, bendY);
             endShape();
         }
+
+        // Farm fence in background
+        noStroke();
+        fill(120, 80, 50);
+        // Fence posts
+        for (let i = 0; i < width; i += 100) {
+            rect(i, height - 160, 8, 50);
+        }
+        // Horizontal fence rails
+        fill(110, 75, 45);
+        rect(0, height - 140, width, 6);
+        rect(0, height - 120, width, 6);
 
         // Wildflowers scattered in grass (daytime only)
         if (timeOfDay > 0.5) {
@@ -1487,7 +1534,7 @@ function drawTopUI() {
     strokeWeight(1);
     line(0, 63, width, 63);
 
-    textFont('Fredoka');
+    textFont('Carter One');
     noStroke();
 
     // LEFT SECTION - Money & Day
@@ -1589,8 +1636,8 @@ function setupGrowingButtons() {
     let btnWidth = (width - btnSpacing * (totalBtns + 1)) / totalBtns;
 
     let x = btnSpacing;
-    
-    textFont('Baloo 2');
+
+    textFont('Permanent Marker');
 
     // Water button - earthy blue/cyan color
     let waterBtn = new Button(x, btnY, btnWidth, btnHeight, '💧', () => {
@@ -1599,7 +1646,7 @@ function setupGrowingButtons() {
         } else if (player.inventory.water < 10) {
             addNotification('❌ Not enough water!', 'error');
         } else {
-            selectedPlant.water(30);
+            selectedPlant.addWater(30);
             player.inventory.water -= 10;
         }
     }, [41, 128, 185]); // Ocean blue
@@ -1749,14 +1796,14 @@ function drawPlantDetails(plant) {
     rect(panelX + 5, panelY + 5, panelW - 10, panelH - 10, 8);
 
     // Plant info with better fonts
-    textFont('Fredoka');
+    textFont('Carter One');
     fill(255, 230, 150);
     noStroke();
     textAlign(LEFT, TOP);
     textSize(16);
     let genderColor = plant.gender === 'female' ? color(255, 150, 200) : color(150, 150, 255);
     fill(genderColor);
-    
+
     // Truncate strain name if too long
     let strainName = plant.strain;
     if (strainName.length > 18) {
@@ -1764,7 +1811,7 @@ function drawPlantDetails(plant) {
     }
     text(`${plant.gender === 'female' ? '♀' : '♂'} ${strainName}`, panelX + 12, panelY + 12);
 
-    textFont('Baloo 2');
+    textFont('Permanent Marker');
     textSize(12);
     fill(200, 255, 200);
     let infoY = panelY + 38;
@@ -1811,7 +1858,7 @@ function drawPlantDetails(plant) {
         infoY += lineHeight * 1.8;
         fill(255, 230, 100);
         textSize(14);
-        textFont('Fredoka');
+        textFont('Carter One');
         text(`🌿 READY! ${plant.yield}g`, panelX + 12, infoY);
     }
 }
