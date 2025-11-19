@@ -1605,15 +1605,17 @@ function setup() {
         introVideo.hide(); // Hide the video element, we'll draw it on canvas
 
         // Mobile compatibility attributes - critical for iOS and Android
-        introVideo.elt.setAttribute('playsinline', '');
-        introVideo.elt.setAttribute('webkit-playsinline', '');
+        introVideo.elt.setAttribute('playsinline', 'true');
+        introVideo.elt.setAttribute('webkit-playsinline', 'true');
         introVideo.elt.setAttribute('preload', 'auto');
+        introVideo.elt.setAttribute('crossorigin', 'anonymous');
 
         // IMPORTANT: Start muted for mobile compatibility
         // We'll try to unmute after user interaction
         introVideo.elt.muted = true;
-        introVideo.elt.setAttribute('muted', '');
+        introVideo.elt.setAttribute('muted', 'true');
         introVideo.elt.removeAttribute('autoplay');
+        introVideo.elt.defaultMuted = true;
 
         // Set up video end callback
         introVideo.onended(() => {
@@ -1622,8 +1624,21 @@ function setup() {
             videoPlaying = false;
         });
 
+        // Add load event listener for better tracking
+        introVideo.elt.addEventListener('loadeddata', () => {
+            console.log('Video data loaded and ready');
+            videoLoaded = true;
+        });
+
+        // Add error handler
+        introVideo.elt.addEventListener('error', (e) => {
+            console.log('Video error:', e);
+            videoLoaded = false;
+            gameState = 'titleScreen';
+        });
+
         videoLoaded = true;
-        console.log('Video loaded successfully');
+        console.log('Video loading initiated');
     } catch (e) {
         console.log('Video loading error:', e);
         videoLoaded = false;
@@ -2904,10 +2919,13 @@ function setupGrowingButtons() {
 
     let isMobile = width < 768;
 
-    // Pause button in top right corner - moved higher on mobile to avoid status icons
-    let pauseBtnSize = isMobile ? 48 : 45;
-    let pauseBtnTop = isMobile ? 75 : 5; // Moved down below status icons on mobile
-    let pauseBtn = new Button(width - pauseBtnSize - 8, pauseBtnTop, pauseBtnSize, pauseBtnSize, '⏸', () => {
+    // Pause button - positioned to avoid overlap with status icons
+    let pauseBtnSize = isMobile ? 42 : 45;
+    // Mobile: top-right below the header to avoid status bar overlap
+    // Desktop: top-right corner as usual
+    let pauseBtnTop = isMobile ? 115 : 5;
+    let pauseBtnLeft = width - pauseBtnSize - (isMobile ? 5 : 8);
+    let pauseBtn = new Button(pauseBtnLeft, pauseBtnTop, pauseBtnSize, pauseBtnSize, '⏸', () => {
         playButtonSFX();
         savedGameplayState = 'growing'; // Save the actual gameplay state
         previousGameState = 'growing';
@@ -3541,9 +3559,10 @@ function drawShop() {
     }
 
     // Back button - positioned to avoid overlap with dynamic content, better spacing on mobile
-    let backBtnY = isMobile ? max(height - 65, startY + Math.ceil(items.length / cols) * (cardH + 10) + sellSectionHeight + 25) : height - 60;
-    let backBtnW = isMobile ? min(180, width * 0.75) : 200;
-    let backBtnH = isMobile ? 44 : 45;
+    let minBackBtnY = startY + Math.ceil(items.length / cols) * (cardH + (isMobile ? 10 : 15)) + sellSectionHeight + (isMobile ? 20 : 25);
+    let backBtnY = isMobile ? min(height - 55, max(minBackBtnY, height - 65)) : height - 60;
+    let backBtnW = isMobile ? min(200, width * 0.8) : 200;
+    let backBtnH = isMobile ? 46 : 45;
     buttons.push(new Button(
         width / 2 - backBtnW / 2,
         backBtnY,
@@ -3611,9 +3630,9 @@ function drawPauseMenu() {
 
     let isMobile = width < 768;
 
-    // Pause menu panel
-    let panelW = min(400, width * 0.9);
-    let panelH = isMobile ? min(480, height * 0.8) : 500;
+    // Pause menu panel - improved mobile sizing
+    let panelW = min(400, width * 0.92);
+    let panelH = isMobile ? min(height * 0.85, 500) : 500;
     let panelX = (width - panelW) / 2;
     let panelY = (height - panelH) / 2;
 
@@ -3637,13 +3656,14 @@ function drawPauseMenu() {
     noStroke();
     text('⏸ PAUSED', width / 2, panelY + (isMobile ? 40 : 50));
 
-    // Buttons - increased spacing from title
+    // Buttons - improved spacing and sizing for mobile
     buttons = [];
-    let btnW = panelW - (isMobile ? 60 : 80);
-    let btnH = isMobile ? 40 : 48;
-    let btnX = panelX + (isMobile ? 30 : 40);
-    let btnY = panelY + (isMobile ? 80 : 110); // More spacing from title on mobile
-    let btnSpacing = isMobile ? 50 : 60;
+    let btnW = panelW - (isMobile ? 50 : 80);
+    let btnH = isMobile ? 42 : 48;
+    let btnX = panelX + (isMobile ? 25 : 40);
+    let btnY = panelY + (isMobile ? 75 : 110);
+    // Dynamic spacing based on screen height to prevent overflow
+    let btnSpacing = isMobile ? min(48, (panelH - 150) / 6.5) : 60;
 
     // Resume button
     buttons.push(new Button(btnX, btnY, btnW, btnH, '▶️ RESUME', () => {
@@ -3697,9 +3717,11 @@ function drawSettingsMenu() {
     // Dark background
     background(20, 30, 25);
 
-    // Settings panel
+    let isMobile = width < 768;
+
+    // Settings panel - improved mobile sizing
     let panelW = min(500, width * 0.95);
-    let panelH = min(500, height * 0.9);
+    let panelH = isMobile ? min(height * 0.92, 550) : min(500, height * 0.9);
     let panelX = (width - panelW) / 2;
     let panelY = (height - panelH) / 2;
 
@@ -3731,16 +3753,16 @@ function drawSettingsMenu() {
 
     // Settings content
     textFont('Carter One');
-    textSize(18);
+    textSize(isMobile ? 16 : 18);
     textStyle(NORMAL); // Remove any style variations
     noStroke(); // Ensure no stroke/outline
     strokeWeight(0); // Explicitly set stroke weight to 0
     fill(180, 255, 180);
     textAlign(LEFT);
 
-    let contentX = panelX + 30;
-    let contentY = panelY + 100;
-    let lineHeight = 80;
+    let contentX = panelX + (isMobile ? 20 : 30);
+    let contentY = panelY + (isMobile ? 85 : 100);
+    let lineHeight = isMobile ? min(70, (panelH - 200) / 4.5) : 80;
 
     // Music Volume - ensure consistent styling
     noStroke();
@@ -3790,11 +3812,11 @@ function drawSettingsMenu() {
 
     // Buttons
     buttons = [];
-    let btnW = 100;
-    let btnH = 40;
+    let btnW = isMobile ? 85 : 100;
+    let btnH = isMobile ? 36 : 40;
 
     // Music volume buttons
-    contentY = panelY + 100 + 25;
+    contentY = panelY + (isMobile ? 85 : 100) + 25;
     buttons.push(new Button(sliderX, contentY - 5, 60, 30, '-', () => {
         playButtonSFX();
         audioSettings.musicVolume = max(0, audioSettings.musicVolume - 0.1);
@@ -3839,8 +3861,10 @@ function drawSettingsMenu() {
         audioSettings.sfxEnabled = !audioSettings.sfxEnabled;
     }, audioSettings.sfxEnabled ? [76, 175, 80] : [180, 100, 100]));
 
-    // Back button
-    buttons.push(new Button(panelX + 40, panelY + panelH - 70, panelW - 80, 50, '⬅️ BACK', () => {
+    // Back button - improved mobile positioning
+    let backBtnH = isMobile ? 45 : 50;
+    let backBtnY = panelY + panelH - (isMobile ? 60 : 70);
+    buttons.push(new Button(panelX + (isMobile ? 25 : 40), backBtnY, panelW - (isMobile ? 50 : 80), backBtnH, '⬅️ BACK', () => {
         playButtonSFX();
         if (previousGameState === 'paused') {
             gameState = 'paused';
@@ -4298,45 +4322,63 @@ function mousePressed() {
         if (videoLoaded && introVideo) {
             // Start playing the intro video
             gameState = 'openingCredits';
-            videoPlaying = true;
             videoEnded = false;
             fadeAlpha = 0;
 
-            // Start muted for mobile compatibility, but immediately set volume for desktop
-            introVideo.elt.muted = false;
-            introVideo.volume(audioSettings.musicVolume);
+            // Reset video to start
+            introVideo.time(0);
 
-            // Use promise-based play for better error handling
-            let playPromise = introVideo.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    console.log('Video started playing with audio');
+            // Try to play with audio first (desktop), fallback to muted (mobile)
+            const tryPlayWithAudio = () => {
+                introVideo.elt.muted = false;
+                introVideo.volume(audioSettings.musicVolume);
+
+                let playPromise = introVideo.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('Video started playing with audio');
+                        videoPlaying = true;
+                    }).catch((error) => {
+                        console.log('Video playback with audio failed, trying muted:', error);
+                        // Fallback to muted playback for mobile devices
+                        tryPlayMuted();
+                    });
+                } else {
+                    console.log('Play promise undefined, assuming video is playing');
                     videoPlaying = true;
-                }).catch((error) => {
-                    console.log('Video playback failed with audio, trying muted:', error);
-                    // If audio playback fails, try muted (for mobile)
-                    introVideo.elt.muted = true;
-                    introVideo.volume(0);
-                    let mutedPromise = introVideo.play();
-                    if (mutedPromise !== undefined) {
-                        mutedPromise.then(() => {
-                            console.log('Video started playing muted');
-                            videoPlaying = true;
-                        }).catch((err) => {
-                            console.log('Video playback failed completely:', err);
-                            gameState = 'titleScreen';
-                            videoPlaying = false;
-                        });
-                    }
-                });
-            } else {
-                console.log('Play promise undefined, video may be playing anyway');
-                videoPlaying = true;
-            }
+                }
+            };
+
+            const tryPlayMuted = () => {
+                introVideo.stop();
+                introVideo.time(0);
+                introVideo.elt.muted = true;
+                introVideo.volume(0);
+
+                let mutedPromise = introVideo.play();
+                if (mutedPromise !== undefined) {
+                    mutedPromise.then(() => {
+                        console.log('Video started playing muted');
+                        videoPlaying = true;
+                    }).catch((err) => {
+                        console.log('Video playback failed completely:', err);
+                        gameState = 'titleScreen';
+                        videoPlaying = false;
+                        fadeAlpha = 255;
+                    });
+                } else {
+                    videoPlaying = true;
+                }
+            };
+
+            // Start with audio attempt
+            tryPlayWithAudio();
         } else {
             // Skip to title screen if video failed to load
+            console.log('Video not loaded, skipping to title screen');
             gameState = 'titleScreen';
             videoPlaying = false;
+            fadeAlpha = 255;
         }
         return;
     }
