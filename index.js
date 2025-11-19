@@ -4255,6 +4255,11 @@ function setupIntroVideoHandling() {
         setTimeout(() => {
             videoIntro.classList.remove('show');
             videoIntro.classList.add('hidden');
+            videoIntro.style.display = 'none'; // Explicitly hide video
+
+            // Ensure tap to start is also completely hidden
+            tapToStart.style.display = 'none';
+
             gameState = 'titleScreen';
             videoPlaying = false;
 
