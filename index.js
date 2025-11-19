@@ -45,6 +45,7 @@ let introVideo; // Will reference the HTML video element
 let videoLoaded = false;
 let videoPlaying = false;
 let videoSkipped = false;
+let fadeAlpha = 255; // For fade-in effect on title screen
 
 // === WEATHER SYSTEM ===
 let weather = {
@@ -1681,13 +1682,19 @@ function drawTitleScreen() {
     // Safety check: Ensure overlays are completely hidden when on title screen
     const tapToStart = document.getElementById('tapToStart');
     const videoIntro = document.getElementById('videoIntro');
-    if (tapToStart && tapToStart.style.display !== 'none') {
+    if (tapToStart) {
         tapToStart.style.display = 'none';
+        tapToStart.style.pointerEvents = 'none';
+        tapToStart.style.zIndex = '-1';
         tapToStart.classList.add('hidden');
+        tapToStart.classList.add('fade-out');
     }
-    if (videoIntro && videoIntro.style.display !== 'none') {
+    if (videoIntro) {
         videoIntro.style.display = 'none';
+        videoIntro.style.pointerEvents = 'none';
+        videoIntro.style.zIndex = '-1';
         videoIntro.classList.add('hidden');
+        videoIntro.classList.add('fade-out');
     }
 
     // Play menu music when on title screen
@@ -4256,13 +4263,30 @@ function setupIntroVideoHandling() {
     const videoIntro = document.getElementById('videoIntro');
     const introVideoElement = document.getElementById('introVideo');
 
+    // Safety check: if elements don't exist, go straight to menu
+    if (!tapToStart || !videoIntro || !introVideoElement) {
+        console.log('⚠ Intro elements missing, going straight to title screen');
+        gameState = 'titleScreen';
+        fadeAlpha = 255;
+        return;
+    }
+
     // Initially hide the video (it will be shown after tap)
     videoIntro.style.display = 'none';
 
     function showMenuScreen() {
+        console.log('🎬 Showing menu screen');
+
         // Immediately set game state and start hiding overlays
         gameState = 'titleScreen';
         videoPlaying = false;
+        fadeAlpha = 255; // Reset fade for smooth transition
+
+        // Immediately disable pointer events to prevent blocking
+        videoIntro.style.pointerEvents = 'none';
+        tapToStart.style.pointerEvents = 'none';
+        videoIntro.style.visibility = 'hidden';
+        tapToStart.style.visibility = 'hidden';
 
         // Fade out video intro
         videoIntro.classList.add('fade-out');
@@ -4272,10 +4296,15 @@ function setupIntroVideoHandling() {
             videoIntro.classList.remove('show');
             videoIntro.classList.add('hidden');
             videoIntro.style.display = 'none'; // Explicitly hide video
+            videoIntro.style.zIndex = '-1'; // Move behind canvas
 
             // Ensure tap to start is also completely hidden
             tapToStart.classList.add('hidden');
+            tapToStart.classList.add('fade-out');
             tapToStart.style.display = 'none';
+            tapToStart.style.zIndex = '-1'; // Move behind canvas
+
+            console.log('✓ Overlays hidden, title screen ready');
 
             // Start menu music after video ends
             startBackgroundMusic();
@@ -4284,10 +4313,14 @@ function setupIntroVideoHandling() {
 
     // Handle tap to start
     function handleTapToStart() {
+        console.log('👆 Tap to start triggered');
+
         // Immediately hide tap to start screen completely
         tapToStart.classList.add('hidden');
         tapToStart.classList.add('fade-out');
         tapToStart.style.display = 'none';
+        tapToStart.style.pointerEvents = 'none';
+        tapToStart.style.visibility = 'hidden';
 
         setTimeout(() => {
             // Show and start video with audio
