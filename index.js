@@ -1678,6 +1678,18 @@ function draw() {
 
 // === TITLE SCREEN ===
 function drawTitleScreen() {
+    // Safety check: Ensure overlays are completely hidden when on title screen
+    const tapToStart = document.getElementById('tapToStart');
+    const videoIntro = document.getElementById('videoIntro');
+    if (tapToStart && tapToStart.style.display !== 'none') {
+        tapToStart.style.display = 'none';
+        tapToStart.classList.add('hidden');
+    }
+    if (videoIntro && videoIntro.style.display !== 'none') {
+        videoIntro.style.display = 'none';
+        videoIntro.classList.add('hidden');
+    }
+
     // Play menu music when on title screen
     switchToMenuMusic();
 
@@ -4248,6 +4260,10 @@ function setupIntroVideoHandling() {
     videoIntro.style.display = 'none';
 
     function showMenuScreen() {
+        // Immediately set game state and start hiding overlays
+        gameState = 'titleScreen';
+        videoPlaying = false;
+
         // Fade out video intro
         videoIntro.classList.add('fade-out');
 
@@ -4258,10 +4274,8 @@ function setupIntroVideoHandling() {
             videoIntro.style.display = 'none'; // Explicitly hide video
 
             // Ensure tap to start is also completely hidden
+            tapToStart.classList.add('hidden');
             tapToStart.style.display = 'none';
-
-            gameState = 'titleScreen';
-            videoPlaying = false;
 
             // Start menu music after video ends
             startBackgroundMusic();
@@ -4270,15 +4284,16 @@ function setupIntroVideoHandling() {
 
     // Handle tap to start
     function handleTapToStart() {
-        // Hide tap to start screen
+        // Immediately hide tap to start screen completely
         tapToStart.classList.add('hidden');
+        tapToStart.classList.add('fade-out');
+        tapToStart.style.display = 'none';
 
         setTimeout(() => {
-            tapToStart.classList.add('fade-out');
-
             // Show and start video with audio
             videoIntro.classList.remove('hidden');
             videoIntro.classList.add('show');
+            videoIntro.style.display = 'flex';
             introVideoElement.muted = false; // Enable audio
 
             // Force video to be visible
