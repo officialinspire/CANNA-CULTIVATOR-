@@ -1576,17 +1576,9 @@ function setup() {
 
     // Determine canvas dimensions based on device and orientation
     if (windowWidth < 768) {
-        // Mobile devices - use more of the viewport for better experience
-        if (windowWidth > windowHeight) {
-            // Landscape mobile
-            canvasWidth = min(windowWidth, 800);
-            canvasHeight = min(windowHeight, 600);
-        } else {
-            // Portrait mobile - use full viewport with safe margins
-            canvasWidth = windowWidth;
-            // Use more height - 1.33:1 ratio for better screen coverage
-            canvasHeight = min(windowHeight * 0.95, canvasWidth * 1.4);
-        }
+        // Mobile devices - use FULL viewport for better experience
+        canvasWidth = windowWidth;
+        canvasHeight = windowHeight;
     } else {
         // Desktop/tablet - keep original behavior
         canvasWidth = min(800, windowWidth);
@@ -1602,22 +1594,15 @@ function setup() {
         introVideo = createVideo('inspiresoftwareintro.mp4');
         introVideo.hide(); // Hide the video element, we'll draw it on canvas
 
-        // Detect mobile device for autoplay compatibility
-        let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || windowWidth < 768;
-
         // Mobile compatibility attributes - critical for iOS and Android
         introVideo.elt.setAttribute('playsinline', 'true');
         introVideo.elt.setAttribute('webkit-playsinline', 'true');
         introVideo.elt.setAttribute('preload', 'auto');
 
-        // CRITICAL FIX: Start muted on mobile to bypass autoplay restrictions
-        if (isMobile) {
-            introVideo.elt.setAttribute('muted', 'true');
-            introVideo.volume(0);
-        } else {
-            introVideo.elt.setAttribute('muted', 'false');
-            introVideo.volume(audioSettings.musicVolume);
-        }
+        // Don't mute - we have touchToStart screen for user interaction
+        // This allows audio to play after user taps
+        introVideo.elt.removeAttribute('autoplay');
+        introVideo.elt.setAttribute('muted', 'false');
 
         // Set up video end callback
         introVideo.onended(() => {
@@ -1893,6 +1878,14 @@ function drawTitleScreen() {
         previousGameState = 'titleScreen';
         gameState = 'settings';
     }, [150, 100, 200]));
+
+    // Fade in from black transition
+    if (fadeAlpha > 0) {
+        fadeAlpha -= 5; // Gradually decrease to reveal title screen
+        fill(0, 0, 0, fadeAlpha);
+        noStroke();
+        rect(0, 0, width, height);
+    }
 }
 
 // === STRAIN SELECTION ===
@@ -3954,31 +3947,25 @@ function mousePressed() {
             videoEnded = false;
             fadeAlpha = 0;
 
-            // Detect mobile device
-            let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || windowWidth < 768;
+            // Set volume for audio playback (user interaction allows unmuted playback)
+            introVideo.volume(audioSettings.musicVolume);
+            introVideo.elt.muted = false;
 
-            // Use promise-based play for better error handling on mobile
+            // Use promise-based play for better error handling
             let playPromise = introVideo.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    console.log('Video started playing successfully');
+                    console.log('Video started playing successfully with audio');
                     videoPlaying = true;
-
-                    // If on desktop and video is muted, try to unmute
-                    if (!isMobile && introVideo.volume() === 0) {
-                        introVideo.volume(audioSettings.musicVolume);
-                    }
-                    // On mobile, keep muted for autoplay compatibility
-                    // User can adjust volume in settings if desired
                 }).catch((error) => {
-                    console.log('Video playback prevented (possibly autoplay policy):', error);
-                    // Try to play muted as fallback
+                    console.log('Video playback with audio prevented, trying muted fallback:', error);
+                    // Try to play muted as fallback if audio is blocked
                     introVideo.volume(0);
                     introVideo.elt.muted = true;
                     let mutedPlayPromise = introVideo.play();
                     if (mutedPlayPromise !== undefined) {
                         mutedPlayPromise.then(() => {
-                            console.log('Video playing muted');
+                            console.log('Video playing muted (audio was blocked)');
                             videoPlaying = true;
                         }).catch((err) => {
                             console.log('Video playback completely blocked:', err);
@@ -4046,17 +4033,9 @@ function windowResized() {
 
     // Determine canvas dimensions based on device and orientation
     if (windowWidth < 768) {
-        // Mobile devices - use more of the viewport for better experience
-        if (windowWidth > windowHeight) {
-            // Landscape mobile
-            canvasWidth = min(windowWidth, 800);
-            canvasHeight = min(windowHeight, 600);
-        } else {
-            // Portrait mobile - use full viewport with safe margins
-            canvasWidth = windowWidth;
-            // Use more height - 1.33:1 ratio for better screen coverage
-            canvasHeight = min(windowHeight * 0.95, canvasWidth * 1.4);
-        }
+        // Mobile devices - use FULL viewport for better experience
+        canvasWidth = windowWidth;
+        canvasHeight = windowHeight;
     } else {
         // Desktop/tablet - keep original behavior
         canvasWidth = min(800, windowWidth);
