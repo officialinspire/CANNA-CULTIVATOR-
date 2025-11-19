@@ -12,6 +12,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
 </head>
 <body>
+    <!-- Tap to Start Screen -->
+    <div id="tapToStart">
+        <div class="tap-content">
+            <div class="tap-icon">🌿</div>
+            <div class="tap-title">CANNA-CULTIVATOR</div>
+            <div class="tap-instruction">TOUCH SCREEN TO START GAME</div>
+            <div class="tap-hint">▼</div>
+        </div>
+    </div>
+
+    <!-- Opening Credit Video -->
+    <div id="videoIntro">
+        <video id="introVideo" playsinline muted>
+            <source src="inspiresoftwareintro.mp4" type="video/mp4">
+        </video>
+    </div>
+
     <div id="game-container"></div>
     <script src="index.js"></script>
 </body>
