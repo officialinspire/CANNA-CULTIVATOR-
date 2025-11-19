@@ -1510,9 +1510,22 @@ function addNotification(message, type = 'info') {
 }
 
 function displayNotifications() {
-    let xOffset = 10; // Left margin
-    let yOffset = 75; // Start below the top UI bar (65px + 10px margin)
-    let notifWidth = min(320, width * 0.4); // Responsive width, max 320px
+    let isMobile = width < 768;
+    let notifWidth = isMobile ? min(width - 20, 280) : min(320, width * 0.4);
+    let notifHeight = isMobile ? 34 : 38;
+    let fontSize = isMobile ? 11 : 12;
+    let xOffset, yOffset;
+
+    // On mobile, position at bottom to avoid overlap with UI elements
+    // On desktop, position at top left as before
+    if (isMobile) {
+        xOffset = (width - notifWidth) / 2; // Center horizontally on mobile
+        // Start from bottom, work upwards
+        yOffset = height - 50; // Start from bottom with margin
+    } else {
+        xOffset = 10; // Left margin on desktop
+        yOffset = 75; // Start below the top UI bar on desktop
+    }
 
     for (let i = notifications.length - 1; i >= 0; i--) {
         let notif = notifications[i];
@@ -1532,22 +1545,27 @@ function displayNotifications() {
                      notif.type === 'error' ? [244, 67, 54] : [33, 150, 243];
 
         push();
-        // Notification background - positioned in left corner
+        // Notification background
         fill(bgColor[0], bgColor[1], bgColor[2], notif.alpha * 0.95);
         stroke(255, notif.alpha);
         strokeWeight(2);
-        rect(xOffset, yOffset, notifWidth, 38, 8);
+        rect(xOffset, yOffset, notifWidth, notifHeight, 8);
 
-        // Notification text - left aligned
+        // Notification text
         textFont('Carter One');
         fill(255, notif.alpha);
         noStroke();
-        textAlign(LEFT, CENTER);
-        textSize(12);
-        text(notif.message, xOffset + 10, yOffset + 19);
+        textAlign(isMobile ? CENTER : LEFT, CENTER);
+        textSize(fontSize);
+        text(notif.message, isMobile ? xOffset + notifWidth / 2 : xOffset + 10, yOffset + notifHeight / 2);
         pop();
 
-        yOffset += 43;
+        // Move position for next notification
+        if (isMobile) {
+            yOffset -= (notifHeight + 5); // Stack upwards on mobile
+        } else {
+            yOffset += (notifHeight + 5); // Stack downwards on desktop
+        }
     }
 }
 
@@ -1558,15 +1576,16 @@ function setup() {
 
     // Determine canvas dimensions based on device and orientation
     if (windowWidth < 768) {
-        // Mobile devices
+        // Mobile devices - use more of the viewport for better experience
         if (windowWidth > windowHeight) {
             // Landscape mobile
             canvasWidth = min(windowWidth, 800);
             canvasHeight = min(windowHeight, 600);
         } else {
-            // Portrait mobile - use full width, maintain aspect ratio
+            // Portrait mobile - use full viewport with safe margins
             canvasWidth = windowWidth;
-            canvasHeight = min(windowHeight, canvasWidth * 0.75); // 4:3 aspect ratio
+            // Use more height - 1.33:1 ratio for better screen coverage
+            canvasHeight = min(windowHeight * 0.95, canvasWidth * 1.4);
         }
     } else {
         // Desktop/tablet - keep original behavior
@@ -1582,13 +1601,23 @@ function setup() {
     try {
         introVideo = createVideo('inspiresoftwareintro.mp4');
         introVideo.hide(); // Hide the video element, we'll draw it on canvas
-        introVideo.volume(audioSettings.musicVolume);
+
+        // Detect mobile device for autoplay compatibility
+        let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || windowWidth < 768;
 
         // Mobile compatibility attributes - critical for iOS and Android
         introVideo.elt.setAttribute('playsinline', 'true');
         introVideo.elt.setAttribute('webkit-playsinline', 'true');
-        introVideo.elt.setAttribute('muted', 'false'); // Start unmuted but respect volume
-        introVideo.elt.setAttribute('preload', 'auto'); // Preload for faster playback
+        introVideo.elt.setAttribute('preload', 'auto');
+
+        // CRITICAL FIX: Start muted on mobile to bypass autoplay restrictions
+        if (isMobile) {
+            introVideo.elt.setAttribute('muted', 'true');
+            introVideo.volume(0);
+        } else {
+            introVideo.elt.setAttribute('muted', 'false');
+            introVideo.volume(audioSettings.musicVolume);
+        }
 
         // Set up video end callback
         introVideo.onended(() => {
@@ -1834,10 +1863,11 @@ function drawTitleScreen() {
 
     pop();
 
-    // Buttons
+    // Buttons - Responsive sizing for mobile
     buttons = [];
-    let btnWidth = 240;
-    let btnHeight = 50;
+    let isMobile = width < 768;
+    let btnWidth = isMobile ? min(width * 0.85, 300) : 240;
+    let btnHeight = isMobile ? 55 : 50;
     let btnSpacing = 15;
     let startY = height - 220;
 
@@ -2566,12 +2596,15 @@ function drawGrowingScreen() {
 }
 
 function drawTopUI() {
+    let isMobile = width < 768;
+    let headerHeight = isMobile ? 90 : 65;
+
     // Enhanced header with gradient background
     noStroke();
     // Gradient from dark green to darker green
-    for (let i = 0; i < 65; i++) {
-        let alpha = map(i, 0, 65, 250, 235);
-        let greenShade = map(i, 0, 65, 15, 20);
+    for (let i = 0; i < headerHeight; i++) {
+        let alpha = map(i, 0, headerHeight, 250, 235);
+        let greenShade = map(i, 0, headerHeight, 15, 20);
         fill(greenShade, greenShade + 10, greenShade, alpha);
         rect(0, i, width, 1);
     }
@@ -2579,82 +2612,130 @@ function drawTopUI() {
     // Decorative border with glow effect
     stroke(76, 175, 80, 200);
     strokeWeight(3);
-    line(0, 65, width, 65);
+    line(0, headerHeight, width, headerHeight);
     stroke(100, 220, 100, 100);
     strokeWeight(1);
-    line(0, 63, width, 63);
+    line(0, headerHeight - 2, width, headerHeight - 2);
 
     textFont('Carter One');
     noStroke();
 
-    // LEFT SECTION - Money & Day
-    // Money with icon background
-    fill(255, 215, 0, 30);
-    ellipse(35, 22, 50, 50);
-    fill(255, 215, 0);
-    textAlign(LEFT, CENTER);
-    textSize(22);
-    textStyle(BOLD);
-    text(`💰 $${player.money}`, 15, 20);
+    if (isMobile) {
+        // MOBILE LAYOUT - Compact 2-row layout
+        textAlign(LEFT, CENTER);
 
-    // Day counter with subtle background
-    fill(124, 179, 66, 30);
-    rect(10, 38, 140, 22, 4);
-    fill(180, 255, 180);
-    textSize(15);
-    textStyle(NORMAL);
-    text(`📅 Day ${floor(gameTime / 180)}`, 18, 48);
+        // Row 1: Money and Day
+        fill(255, 215, 0);
+        textSize(16);
+        textStyle(BOLD);
+        text(`💰 $${player.money}`, 8, 15);
 
-    // CENTER/RIGHT SECTION - Organized inventory with better spacing
-    let rightStartX = width - 460;
-    let topRowY = 20;
-    let bottomRowY = 45;
-    let itemSpacing = 110;
+        fill(180, 255, 180);
+        textSize(13);
+        textStyle(NORMAL);
+        text(`📅 Day ${floor(gameTime / 180)}`, 8, 35);
 
-    // Background panels for better organization
-    fill(41, 128, 185, 25);
-    rect(rightStartX - 5, topRowY - 14, itemSpacing - 8, 26, 4);
-    fill(46, 125, 50, 25);
-    rect(rightStartX + itemSpacing - 5, topRowY - 14, itemSpacing - 8, 26, 4);
-    fill(142, 68, 173, 25);
-    rect(rightStartX + itemSpacing * 2 - 5, topRowY - 14, itemSpacing - 8, 26, 4);
-    fill(230, 126, 34, 25);
-    rect(rightStartX + itemSpacing * 3 - 5, topRowY - 14, itemSpacing - 8, 26, 4);
+        // Row 2: Compact inventory display
+        textAlign(CENTER, CENTER);
+        textSize(11);
+        textStyle(BOLD);
 
-    // Top row - Water and NPK nutrients
-    textAlign(CENTER, CENTER);
-    textSize(15);
-    textStyle(BOLD);
+        let itemW = width / 6;
+        let row2Y = 58;
 
-    // Water
-    fill(100, 200, 255);
-    text(`💧 ${floor(player.inventory.water)}`, rightStartX + 45, topRowY);
+        // Water
+        fill(41, 128, 185, 40);
+        rect(0, row2Y - 12, itemW, 24, 0);
+        fill(100, 200, 255);
+        text(`💧\n${floor(player.inventory.water)}`, itemW * 0.5, row2Y);
 
-    // Nitrogen
-    fill(120, 255, 120);
-    text(`🌱 ${floor(player.inventory.nutrients.nitrogen)}`, rightStartX + itemSpacing + 45, topRowY);
+        // Nitrogen
+        fill(46, 125, 50, 40);
+        rect(itemW, row2Y - 12, itemW, 24, 0);
+        fill(120, 255, 120);
+        text(`🌱\n${floor(player.inventory.nutrients.nitrogen)}`, itemW * 1.5, row2Y);
 
-    // Phosphorus
-    fill(220, 130, 255);
-    text(`🌸 ${floor(player.inventory.nutrients.phosphorus)}`, rightStartX + itemSpacing * 2 + 45, topRowY);
+        // Phosphorus
+        fill(142, 68, 173, 40);
+        rect(itemW * 2, row2Y - 12, itemW, 24, 0);
+        fill(220, 130, 255);
+        text(`🌸\n${floor(player.inventory.nutrients.phosphorus)}`, itemW * 2.5, row2Y);
 
-    // Potassium
-    fill(255, 200, 120);
-    text(`🍌 ${floor(player.inventory.nutrients.potassium)}`, rightStartX + itemSpacing * 3 + 45, topRowY);
+        // Potassium
+        fill(230, 126, 34, 40);
+        rect(itemW * 3, row2Y - 12, itemW, 24, 0);
+        fill(255, 200, 120);
+        text(`🍌\n${floor(player.inventory.nutrients.potassium)}`, itemW * 3.5, row2Y);
 
-    // Bottom row - Pesticide and Light power
-    fill(211, 84, 0, 25);
-    rect(rightStartX + itemSpacing - 5, bottomRowY - 14, itemSpacing - 8, 26, 4);
-    fill(241, 196, 15, 25);
-    rect(rightStartX + itemSpacing * 2 - 5, bottomRowY - 14, itemSpacing - 8, 26, 4);
+        // Pesticide
+        fill(211, 84, 0, 40);
+        rect(itemW * 4, row2Y - 12, itemW, 24, 0);
+        fill(255, 140, 140);
+        text(`🔫\n${player.inventory.pesticide}`, itemW * 4.5, row2Y);
 
-    // Pesticide
-    fill(255, 140, 140);
-    text(`🔫 ${player.inventory.pesticide}`, rightStartX + itemSpacing + 45, bottomRowY);
+        // Light power
+        fill(241, 196, 15, 40);
+        rect(itemW * 5, row2Y - 12, itemW, 24, 0);
+        fill(255, 255, 180);
+        text(`💡\n${player.inventory.lights.power}%`, itemW * 5.5, row2Y);
 
-    // Light power
-    fill(255, 255, 180);
-    text(`💡 ${player.inventory.lights.power}%`, rightStartX + itemSpacing * 2 + 45, bottomRowY);
+    } else {
+        // DESKTOP LAYOUT - Original design
+        // LEFT SECTION - Money & Day
+        fill(255, 215, 0, 30);
+        ellipse(35, 22, 50, 50);
+        fill(255, 215, 0);
+        textAlign(LEFT, CENTER);
+        textSize(22);
+        textStyle(BOLD);
+        text(`💰 $${player.money}`, 15, 20);
+
+        fill(124, 179, 66, 30);
+        rect(10, 38, 140, 22, 4);
+        fill(180, 255, 180);
+        textSize(15);
+        textStyle(NORMAL);
+        text(`📅 Day ${floor(gameTime / 180)}`, 18, 48);
+
+        // CENTER/RIGHT SECTION
+        let rightStartX = width - 460;
+        let topRowY = 20;
+        let bottomRowY = 45;
+        let itemSpacing = 110;
+
+        // Background panels
+        fill(41, 128, 185, 25);
+        rect(rightStartX - 5, topRowY - 14, itemSpacing - 8, 26, 4);
+        fill(46, 125, 50, 25);
+        rect(rightStartX + itemSpacing - 5, topRowY - 14, itemSpacing - 8, 26, 4);
+        fill(142, 68, 173, 25);
+        rect(rightStartX + itemSpacing * 2 - 5, topRowY - 14, itemSpacing - 8, 26, 4);
+        fill(230, 126, 34, 25);
+        rect(rightStartX + itemSpacing * 3 - 5, topRowY - 14, itemSpacing - 8, 26, 4);
+
+        textAlign(CENTER, CENTER);
+        textSize(15);
+        textStyle(BOLD);
+
+        fill(100, 200, 255);
+        text(`💧 ${floor(player.inventory.water)}`, rightStartX + 45, topRowY);
+        fill(120, 255, 120);
+        text(`🌱 ${floor(player.inventory.nutrients.nitrogen)}`, rightStartX + itemSpacing + 45, topRowY);
+        fill(220, 130, 255);
+        text(`🌸 ${floor(player.inventory.nutrients.phosphorus)}`, rightStartX + itemSpacing * 2 + 45, topRowY);
+        fill(255, 200, 120);
+        text(`🍌 ${floor(player.inventory.nutrients.potassium)}`, rightStartX + itemSpacing * 3 + 45, topRowY);
+
+        fill(211, 84, 0, 25);
+        rect(rightStartX + itemSpacing - 5, bottomRowY - 14, itemSpacing - 8, 26, 4);
+        fill(241, 196, 15, 25);
+        rect(rightStartX + itemSpacing * 2 - 5, bottomRowY - 14, itemSpacing - 8, 26, 4);
+
+        fill(255, 140, 140);
+        text(`🔫 ${player.inventory.pesticide}`, rightStartX + itemSpacing + 45, bottomRowY);
+        fill(255, 255, 180);
+        text(`💡 ${player.inventory.lights.power}%`, rightStartX + itemSpacing * 2 + 45, bottomRowY);
+    }
 
     textStyle(NORMAL);
 }
@@ -2680,9 +2761,11 @@ function drawControlPanel() {
 function setupGrowingButtons() {
     buttons = [];
 
-    // Pause button in top right corner
-    let pauseBtnSize = 45;
-    let pauseBtn = new Button(width - pauseBtnSize - 10, 10, pauseBtnSize, pauseBtnSize, '⏸', () => {
+    let isMobile = width < 768;
+
+    // Pause button in top right corner - larger on mobile for easier touch
+    let pauseBtnSize = isMobile ? 50 : 45;
+    let pauseBtn = new Button(width - pauseBtnSize - 8, 8, pauseBtnSize, pauseBtnSize, '⏸', () => {
         playButtonSFX();
         savedGameplayState = 'growing'; // Save the actual gameplay state
         previousGameState = 'growing';
@@ -2691,9 +2774,11 @@ function setupGrowingButtons() {
     }, [150, 100, 200]);
     buttons.push(pauseBtn);
 
+    // Mobile: larger buttons for better touch targets
+    // Desktop: original compact layout
     let btnY = height - 105;
-    let btnHeight = 38;
-    let btnSpacing = 8;
+    let btnHeight = isMobile ? 44 : 38;
+    let btnSpacing = isMobile ? 6 : 8;
     let totalBtns = 6;
     let btnWidth = (width - btnSpacing * (totalBtns + 1)) / totalBtns;
 
@@ -3869,16 +3954,27 @@ function mousePressed() {
             videoEnded = false;
             fadeAlpha = 0;
 
+            // Detect mobile device
+            let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || windowWidth < 768;
+
             // Use promise-based play for better error handling on mobile
             let playPromise = introVideo.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
                     console.log('Video started playing successfully');
                     videoPlaying = true;
+
+                    // If on desktop and video is muted, try to unmute
+                    if (!isMobile && introVideo.volume() === 0) {
+                        introVideo.volume(audioSettings.musicVolume);
+                    }
+                    // On mobile, keep muted for autoplay compatibility
+                    // User can adjust volume in settings if desired
                 }).catch((error) => {
                     console.log('Video playback prevented (possibly autoplay policy):', error);
-                    // Try to play muted as fallback for mobile browsers
+                    // Try to play muted as fallback
                     introVideo.volume(0);
+                    introVideo.elt.muted = true;
                     let mutedPlayPromise = introVideo.play();
                     if (mutedPlayPromise !== undefined) {
                         mutedPlayPromise.then(() => {
@@ -3950,15 +4046,16 @@ function windowResized() {
 
     // Determine canvas dimensions based on device and orientation
     if (windowWidth < 768) {
-        // Mobile devices
+        // Mobile devices - use more of the viewport for better experience
         if (windowWidth > windowHeight) {
             // Landscape mobile
             canvasWidth = min(windowWidth, 800);
             canvasHeight = min(windowHeight, 600);
         } else {
-            // Portrait mobile - use full width, maintain aspect ratio
+            // Portrait mobile - use full viewport with safe margins
             canvasWidth = windowWidth;
-            canvasHeight = min(windowHeight, canvasWidth * 0.75); // 4:3 aspect ratio
+            // Use more height - 1.33:1 ratio for better screen coverage
+            canvasHeight = min(windowHeight * 0.95, canvasWidth * 1.4);
         }
     } else {
         // Desktop/tablet - keep original behavior
